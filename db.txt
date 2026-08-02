@@ -1,0 +1,369 @@
+I'll help you design a comprehensive database schema for your matrimonial site "Sathi". Here's a complete backend database structure:
+
+## Database Schema for Sathi Matrimonial Site
+
+### Core Tables
+
+```sql
+-- 1. Users Table (Core profile information)
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone VARCHAR(20) UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    is_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    profile_completion_percentage INT DEFAULT 0,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_phone (phone)
+);
+
+-- 2. User Profiles Table
+CREATE TABLE user_profiles (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNIQUE NOT NULL,
+    profile_for ENUM('self', 'son', 'daughter', 'brother', 'sister', 'relative', 'friend') NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100),
+    gender ENUM('male', 'female', 'other') NOT NULL,
+    date_of_birth DATE NOT NULL,
+    height_cm DECIMAL(5,2),
+    weight_kg DECIMAL(5,2),
+    body_type ENUM('slim', 'average', 'athletic', 'heavy'),
+    complexion ENUM('very_fair', 'fair', 'wheatish', 'dark'),
+    marital_status ENUM('never_married', 'divorced', 'widowed', 'separated'),
+    has_children BOOLEAN DEFAULT FALSE,
+    children_count INT DEFAULT 0,
+    religion VARCHAR(50),
+    caste VARCHAR(100),
+    sub_caste VARCHAR(100),
+    mother_tongue VARCHAR(50),
+    country VARCHAR(100),
+    state VARCHAR(100),
+    city VARCHAR(100),
+    profile_photo_url VARCHAR(500),
+    about_me TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_religion_caste (religion, caste),
+    INDEX idx_location (country, state, city),
+    INDEX idx_gender_dob (gender, date_of_birth)
+);
+
+-- 3. Education & Career Table
+CREATE TABLE education_career (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNIQUE NOT NULL,
+    highest_education VARCHAR(200),
+    education_detail TEXT,
+    occupation VARCHAR(200),
+    employment_type ENUM('private', 'government', 'business', 'self_employed', 'not_working', 'student'),
+    annual_income DECIMAL(12,2),
+    income_currency VARCHAR(3) DEFAULT 'INR',
+    company_name VARCHAR(200),
+    job_location VARCHAR(200),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 4. Family Details Table
+CREATE TABLE family_details (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNIQUE NOT NULL,
+    father_name VARCHAR(200),
+    father_occupation VARCHAR(200),
+    mother_name VARCHAR(200),
+    mother_occupation VARCHAR(200),
+    family_type ENUM('joint', 'nuclear', 'single_parent'),
+    family_status ENUM('middle_class', 'upper_middle_class', 'high_class', 'affluent'),
+    family_values ENUM('traditional', 'moderate', 'liberal'),
+    siblings INT DEFAULT 0,
+    married_siblings INT DEFAULT 0,
+    family_location VARCHAR(200),
+    about_family TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 5. Partner Preferences Table
+CREATE TABLE partner_preferences (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNIQUE NOT NULL,
+    min_age INT,
+    max_age INT,
+    min_height DECIMAL(5,2),
+    max_height DECIMAL(5,2),
+    marital_status VARCHAR(100),
+    religion VARCHAR(50),
+    caste VARCHAR(100),
+    mother_tongue VARCHAR(50),
+    min_education VARCHAR(200),
+    occupation VARCHAR(200),
+    min_income DECIMAL(12,2),
+    max_income DECIMAL(12,2),
+    country VARCHAR(100),
+    state VARCHAR(100),
+    city VARCHAR(100),
+    diet_preference VARCHAR(50),
+    smoking_habits ENUM('no', 'occasionally', 'yes'),
+    drinking_habits ENUM('no', 'occasionally', 'yes'),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 6. Lifestyle & Habits Table
+CREATE TABLE lifestyle_habits (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNIQUE NOT NULL,
+    diet ENUM('vegetarian', 'non_vegetarian', 'eggetarian', 'vegan', 'jain'),
+    smoking ENUM('no', 'occasionally', 'yes'),
+    drinking ENUM('no', 'occasionally', 'yes'),
+    hobbies TEXT,
+    interests TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 7. Photos Table
+CREATE TABLE photos (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    photo_url VARCHAR(500) NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    upload_order INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_photos (user_id, is_primary)
+);
+
+-- 8. Horoscope Details Table
+CREATE TABLE horoscope_details (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNIQUE NOT NULL,
+    rasi VARCHAR(50),
+    nakshatra VARCHAR(50),
+    moon_sign VARCHAR(50),
+    star VARCHAR(50),
+    manglik ENUM('yes', 'no', 'partial', 'not_sure'),
+    time_of_birth TIME,
+    place_of_birth VARCHAR(200),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 9. Memberships/Subscriptions Table
+CREATE TABLE memberships (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    duration_days INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    features JSON,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. User Memberships Table
+CREATE TABLE user_memberships (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    membership_id BIGINT NOT NULL,
+    start_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_date TIMESTAMP NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    payment_id BIGINT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (membership_id) REFERENCES memberships(id),
+    INDEX idx_user_membership (user_id, is_active)
+);
+
+-- 11. Payments Table
+CREATE TABLE payments (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'INR',
+    payment_method VARCHAR(50),
+    transaction_id VARCHAR(255) UNIQUE,
+    status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- 12. Contact Requests/Interests Table
+CREATE TABLE interests (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    sender_id BIGINT NOT NULL,
+    receiver_id BIGINT NOT NULL,
+    status ENUM('pending', 'accepted', 'rejected', 'expired') DEFAULT 'pending',
+    message TEXT,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_interest (sender_id, receiver_id),
+    INDEX idx_interests (receiver_id, status)
+);
+
+-- 13. Shortlisted Profiles Table
+CREATE TABLE shortlisted_profiles (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    shortlisted_user_id BIGINT NOT NULL,
+    note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (shortlisted_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_shortlist (user_id, shortlisted_user_id)
+);
+
+-- 14. Blocked Profiles Table
+CREATE TABLE blocked_profiles (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    blocker_id BIGINT NOT NULL,
+    blocked_id BIGINT NOT NULL,
+    reason VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_block (blocker_id, blocked_id)
+);
+
+-- 15. Profile Views Table
+CREATE TABLE profile_views (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    viewer_id BIGINT NOT NULL,
+    viewed_profile_id BIGINT NOT NULL,
+    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (viewer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (viewed_profile_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_profile_views (viewed_profile_id, viewed_at)
+);
+
+-- 16. Notifications Table
+CREATE TABLE notifications (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    type ENUM('interest_received', 'interest_accepted', 'profile_viewed', 'membership_expiring', 'system') NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT,
+    reference_id BIGINT,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_notifications (user_id, is_read, created_at)
+);
+
+-- 17. Success Stories Table
+CREATE TABLE success_stories (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    bride_user_id BIGINT NOT NULL,
+    groom_user_id BIGINT NOT NULL,
+    story TEXT,
+    wedding_date DATE,
+    photos JSON,
+    is_featured BOOLEAN DEFAULT FALSE,
+    is_approved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (bride_user_id) REFERENCES users(id),
+    FOREIGN KEY (groom_user_id) REFERENCES users(id)
+);
+
+-- 18. Admin Activity Logs
+CREATE TABLE activity_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT,
+    action VARCHAR(100) NOT NULL,
+    description TEXT,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_activity_logs (user_id, created_at)
+);
+```
+
+## Key Features & Indexes
+
+### Additional Indexes for Performance:
+```sql
+-- Create composite indexes for common search queries
+CREATE INDEX idx_profile_search ON user_profiles(religion, caste, marital_status, gender, date_of_birth);
+CREATE INDEX idx_education_search ON education_career(highest_education, occupation, annual_income);
+CREATE INDEX idx_location_search ON user_profiles(country, state, city);
+CREATE INDEX idx_partner_pref ON partner_preferences(min_age, max_age, religion, caste);
+```
+
+### Sample Queries for Common Operations:
+
+```sql
+-- 1. Search Profiles by Criteria
+SELECT 
+    up.*, ec.*, ld.*, hd.*
+FROM user_profiles up
+LEFT JOIN education_career ec ON up.user_id = ec.user_id
+LEFT JOIN lifestyle_habits ld ON up.user_id = ld.user_id
+LEFT JOIN horoscope_details hd ON up.user_id = hd.user_id
+WHERE 
+    up.gender = 'female' 
+    AND up.marital_status = 'never_married'
+    AND up.religion = 'Hindu'
+    AND up.date_of_birth <= DATE_SUB(CURDATE(), INTERVAL 21 YEAR)
+    AND up.date_of_birth >= DATE_SUB(CURDATE(), INTERVAL 28 YEAR);
+
+-- 2. Get Mutual Matches
+SELECT DISTINCT 
+    up.*
+FROM user_profiles up
+JOIN partner_preferences pp1 ON up.user_id = pp1.user_id
+WHERE 
+    pp1.user_id IN (
+        SELECT receiver_id 
+        FROM interests 
+        WHERE sender_id = :current_user_id 
+        AND status = 'pending'
+    )
+    AND EXISTS (
+        SELECT 1 
+        FROM partner_preferences pp2 
+        WHERE pp2.user_id = :current_user_id
+        AND up.age BETWEEN pp2.min_age AND pp2.max_age
+    );
+
+-- 3. Daily Profile Recommendations
+SELECT 
+    up.*,
+    COUNT(pv.id) as view_count,
+    COUNT(i.id) as interest_count
+FROM user_profiles up
+LEFT JOIN profile_views pv ON up.user_id = pv.viewed_profile_id
+LEFT JOIN interests i ON up.user_id = i.receiver_id
+WHERE up.user_id != :current_user_id
+    AND up.user_id NOT IN (
+        SELECT blocked_id FROM blocked_profiles WHERE blocker_id = :current_user_id
+    )
+GROUP BY up.id
+ORDER BY view_count DESC, interest_count DESC
+LIMIT 10;
+```
+
+## API Endpoints Structure (Recommended):
+
+```
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/profiles
+GET    /api/profiles/{id}
+PUT    /api/profiles/update
+POST   /api/interests/send
+GET    /api/interests/received
+GET    /api/interests/sent
+POST   /api/interests/{id}/accept
+POST   /api/interests/{id}/reject
+POST   /api/shortlist/add
+GET    /api/shortlist
+GET    /api/search
+POST   /api/payments/initiate
+GET    /api/recommendations
+GET    /api/notifications
+```
+
+This schema provides a solid foundation for your matrimonial site. It includes all essential features like user profiles, partner preferences, interests, memberships, and proper indexing for performance. You can extend it based on specific business requirements.
