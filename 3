@@ -1,0 +1,161 @@
+// components/profile/EducationCareer.jsx
+import React from 'react';
+import {
+  Grid,
+  TextField,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  Typography,
+  Box,
+  InputAdornment
+} from '@mui/material';
+
+const EducationCareer = ({ data, updateData }) => {
+  const handleChange = (field, value) => {
+    updateData({ ...data, [field]: value });
+  };
+
+  const educationLevels = [
+    'High School',
+    'Bachelor\'s Degree',
+    'Master\'s Degree',
+    'Ph.D.',
+    'MBA',
+    'MBBS',
+    'BE/B.Tech',
+    'B.Com',
+    'B.Sc',
+    'M.Tech',
+    'MCA',
+    'Diploma',
+    'Other'
+  ];
+
+  const occupations = [
+    'Software Engineer',
+    'Doctor',
+    'Teacher',
+    'Business Owner',
+    'Manager',
+    'Accountant',
+    'Lawyer',
+    'Architect',
+    'Civil Engineer',
+    'Banker',
+    'Government Employee',
+    'Private Sector Employee',
+    'Self Employed',
+    'Student',
+    'Other'
+  ];
+
+  return (
+    <Box>
+      <Typography variant="h6" gutterBottom color="primary" sx={{ mb: 3 }}>
+        Education & Career Details
+      </Typography>
+
+      <Grid container spacing={3}>
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth required>
+            <InputLabel>Highest Education</InputLabel>
+            <Select
+              value={data.highestEducation}
+              onChange={(e) => handleChange('highestEducation', e.target.value)}
+              label="Highest Education"
+            >
+              {educationLevels.map(edu => (
+                <MenuItem key={edu} value={edu.toLowerCase()}>
+                  {edu}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Education Detail"
+            value={data.educationDetail}
+            onChange={(e) => handleChange('educationDetail', e.target.value)}
+            placeholder="e.g., B.Tech from IIT Delhi, 2020"
+            multiline
+            rows={2}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth required>
+            <InputLabel>Occupation</InputLabel>
+            <Select
+              value={data.occupation}
+              onChange={(e) => handleChange('occupation', e.target.value)}
+              label="Occupation"
+            >
+              {occupations.map(occ => (
+                <MenuItem key={occ} value={occ.toLowerCase()}>
+                  {occ}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth>
+            <InputLabel>Employment Type</InputLabel>
+            <Select
+              value={data.employmentType}
+              onChange={(e) => handleChange('employmentType', e.target.value)}
+              label="Employment Type"
+            >
+              <MenuItem value="private">Private</MenuItem>
+              <MenuItem value="government">Government</MenuItem>
+              <MenuItem value="business">Business</MenuItem>
+              <MenuItem value="self_employed">Self Employed</MenuItem>
+              <MenuItem value="not_working">Not Working</MenuItem>
+              <MenuItem value="student">Student</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Annual Income (₹)"
+            type="number"
+            value={data.annualIncome}
+            onChange={(e) => handleChange('annualIncome', e.target.value)}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+              inputProps: { min: 0 }
+            }}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Company Name"
+            value={data.companyName}
+            onChange={(e) => handleChange('companyName', e.target.value)}
+          />
+        </Grid>
+
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Job Location"
+            value={data.jobLocation}
+            onChange={(e) => handleChange('jobLocation', e.target.value)}
+          />
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+export default EducationCareer;
