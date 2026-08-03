@@ -1,0 +1,194 @@
+import * as React from "react";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import Toolbar from "@mui/material/Toolbar";
+import IconButton from "@mui/material/IconButton";
+import Typography from "@mui/material/Typography";
+import Menu from "@mui/material/Menu";
+import MenuIcon from "@mui/icons-material/Menu";
+import Container from "@mui/material/Container";
+import Avatar from "@mui/material/Avatar";
+import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
+import MenuItem from "@mui/material/MenuItem";
+import { useNavigate } from "react-router-dom";
+
+function ResponsiveAppBar() {
+  const [anchorElNav, setAnchorElNav] = React.useState(null);
+  const [anchorElUser, setAnchorElUser] = React.useState(null);
+
+  const navigate = useNavigate();
+
+  const handleOpenNavMenu = (event) => {
+    setAnchorElNav(event.currentTarget);
+  };
+
+  const handleOpenUserMenu = (event) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token"); 
+    handleCloseUserMenu();
+    navigate("/");
+  };
+
+  return (
+    <AppBar position="static" sx={{ backgroundColor: "rgb(163, 65, 65)" }}>
+      <Container maxWidth="xl">
+        <Toolbar disableGutters>
+          <Typography
+            variant="h6"
+            noWrap
+            sx={{
+              mr: 2,
+              display: { xs: "none", md: "flex" },
+              fontFamily: "monospace",
+              fontWeight: 700,
+              letterSpacing: ".3rem",
+              color: "inherit",
+              cursor: "pointer",
+              textDecoration: "none",
+            }}
+            onClick={() => navigate("/home")}
+          >
+            Sathi
+          </Typography>
+
+          <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
+            <IconButton
+              size="large"
+              color="inherit"
+              onClick={handleOpenNavMenu}
+            >
+              <MenuIcon />
+            </IconButton>
+
+            <Menu
+              id="nav-menu"
+              anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "left",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "left",
+              }}
+              open={Boolean(anchorElNav)}
+              onClose={handleCloseNavMenu}
+            >
+              <MenuItem
+                onClick={() => {
+                  handleCloseNavMenu();
+                  navigate("/home");
+                }}
+              >
+                <Typography>Home</Typography>
+              </MenuItem>
+
+              <MenuItem
+                onClick={() => {
+                  handleCloseNavMenu();
+                  navigate("/contact");
+                }}
+              >
+                <Typography>Contact Us</Typography>
+              </MenuItem>
+
+            </Menu>
+          </Box>
+
+          {/* Logo for Mobile */}
+          <Typography
+            variant="h5"
+            noWrap
+            sx={{
+              mr: 2,
+              display: { xs: "flex", md: "none" },
+              flexGrow: 1,
+              fontFamily: "monospace",
+              fontWeight: 700,
+              letterSpacing: ".3rem",
+              color: "inherit",
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/home")}
+          >
+            Sathi
+          </Typography>
+
+          {/* Desktop Navigation */}
+          <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
+            <Button
+              sx={{ my: 2, color: "white" }}
+              onClick={() => navigate("/home")}
+            >
+              Home
+            </Button>
+
+            <Button
+              sx={{ my: 2, color: "white" }}
+              onClick={() => navigate("/contact")}
+            >
+              Contact Us
+            </Button>
+
+          </Box>
+        
+          <Box sx={{ flexGrow: 0 }}>
+            <Tooltip title="Open settings">
+              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                <Typography>Profile</Typography>
+              </IconButton>
+            </Tooltip>
+
+            <Menu
+              id="user-menu"
+              anchorEl={anchorElUser}
+              anchorOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              open={Boolean(anchorElUser)}
+              onClose={handleCloseUserMenu}
+            >
+              <MenuItem
+                onClick={() => {
+                  handleCloseUserMenu();
+                  navigate("/profile");
+                }}
+              >
+                <Typography>Profile</Typography>
+              </MenuItem>
+
+              <MenuItem onClick={handleCloseUserMenu}>
+                <Typography>Account</Typography>
+              </MenuItem>
+
+              <MenuItem onClick={handleLogout}>
+                <Typography sx={{ color: "red" }}>
+                  Log Out
+                </Typography>
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
+  );
+}
+
+export default ResponsiveAppBar;
