@@ -2,58 +2,89 @@ const db = require("../config/database");
 
 const getProfile = (req, res) => {
     db.query("SELECT * FROM profile", (err, result) => {
-        if (err) return res.status(500).json(err);
+        if (err) {
+            console.error("Error fetching profiles:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
+        }
         res.json(result);
     });
 };
 
 const postProfile = (req, res) => {
-   const { gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height } = req.body;
+    const { gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height } = req.body;
+    
+    // Basic validation
+    if (!name || !email) {
+        return res.status(400).json({ error: "Name and email are required" });
+    }
+
     const sql = `
-    INSERT INTO profile
-    (Gender, Name, Email, Age, DOB, Contact, Address, Language, Religion,
-     Education, Occupation, CompanyName, MonthlyIncome, Image, Status,
-     Detail, Physically, Height)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+        INSERT INTO profile
+        (Gender, Name, Email, Age, DOB, Contact, Address, Language, Religion,
+         Education, Occupation, CompanyName, MonthlyIncome, Image, Status,
+         Detail, Physically, Height)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
-    db.query(
-        sql,[gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height,],
-        (err, result) => {
-            if (err) return res.status(500).json(err);
+    const values = [gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height];
 
-            res.json({
-                message: "Added Successfully",
-                id: result.insertId,
-            });
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error("Error inserting profile:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
         }
-    );
-};
 
+        res.status(201).json({
+            message: "Added Successfully",
+            id: result.insertId,
+        });
+    });
+};
 
 const updateProfile = (req, res) => {
     const { id } = req.params;
     const { gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height } = req.body;
-    const sql = `UPDATE question SET Gender=?,Name=?,Email=?,Age=?,DOB=?,Contact=?,Address=?,Language=?,Religion=?,Education=?,Occupation=?,CompanyName=?,MonthlyIncome=?,Image=?,Status=?,Detail=?,Physically=?,Height=? WHERE RegisterID =?`;
-    db.query(sql, [gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height, id], (err, result) => {
+
+    const sql = `
+        UPDATE profile 
+        SET Gender=?, Name=?, Email=?, Age=?, DOB=?, Contact=?, Address=?, 
+            Language=?, Religion=?, Education=?, Occupation=?, CompanyName=?, 
+            MonthlyIncome=?, Image=?, Status=?, Detail=?, Physically=?, Height=?
+        WHERE RegisterID = ?
+    `;
+
+    const values = [gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height, id];
+
+    db.query(sql, values, (err, result) => {
         if (err) {
-            return res.status(500).json(err);
+            console.error("Error updating profile:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
         }
-        return res.json({ message: "Updated Successfully", });
-    }
-    );
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+        
+        res.json({ message: "Updated Successfully" });
+    });
 };
 
 const deleteProfile = (req, res) => {
     const { id } = req.params;
     const sql = "DELETE FROM profile WHERE RegisterID = ?";
+    
     db.query(sql, [id], (err, result) => {
         if (err) {
-            return res.status(500).json(err);
+            console.error("Error deleting profile:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
         }
-        res.json({ message: "Deleted Successfully", });
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+        
+        res.json({ message: "Deleted Successfully" });
     });
 };
 
 module.exports = { getProfile, postProfile, updateProfile, deleteProfile };
-
