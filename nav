@@ -12,8 +12,10 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import { useNavigate } from "react-router-dom";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 
-function ResponsiveAppBar() {
+function Navbar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
 
@@ -36,38 +38,56 @@ function ResponsiveAppBar() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token"); 
+    localStorage.removeItem("token");
     handleCloseUserMenu();
     navigate("/");
   };
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: "rgb(163, 65, 65)" }}>
+    <AppBar 
+      position="sticky" 
+      elevation={0}
+      sx={{ 
+        backgroundColor: "rgb(163, 65, 65)",
+        borderBottom: "1px solid rgba(255,255,255,0.1)",
+      }}
+    >
       <Container maxWidth="xl">
-        <Toolbar disableGutters>
-          <Typography
-            variant="h6"
-            noWrap
+        <Toolbar disableGutters sx={{ height: 70 }}>
+          {/* Desktop Logo */}
+          <Box
             sx={{
-              mr: 2,
+              mr: 4,
               display: { xs: "none", md: "flex" },
-              fontFamily: "monospace",
-              fontWeight: 700,
-              letterSpacing: ".3rem",
-              color: "inherit",
+              alignItems: "center",
+              gap: 1,
               cursor: "pointer",
-              textDecoration: "none",
             }}
             onClick={() => navigate("/home")}
           >
-            Sathi
-          </Typography>
+            <FavoriteIcon sx={{ color: "white", fontSize: 24 }} />
+            <Typography
+              variant="h6"
+              noWrap
+              sx={{
+                fontFamily: '"Georgia", serif',
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+                color: "white",
+                textDecoration: "none",
+                fontSize: "1.5rem",
+              }}
+            >
+              Sathi
+            </Typography>
+          </Box>
 
+          {/* Mobile Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
-              color="inherit"
               onClick={handleOpenNavMenu}
+              sx={{ color: "white" }}
             >
               <MenuIcon />
             </IconButton>
@@ -85,14 +105,23 @@ function ResponsiveAppBar() {
               }}
               open={Boolean(anchorElNav)}
               onClose={handleCloseNavMenu}
+              PaperProps={{
+                sx: {
+                  mt: 1.5,
+                  borderRadius: 2,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  minWidth: 200,
+                }
+              }}
             >
               <MenuItem
                 onClick={() => {
                   handleCloseNavMenu();
                   navigate("/home");
                 }}
+                sx={{ py: 1.5 }}
               >
-                <Typography>Home</Typography>
+                <Typography sx={{ fontWeight: 500, color: "#333" }}>Home</Typography>
               </MenuItem>
 
               <MenuItem
@@ -100,54 +129,131 @@ function ResponsiveAppBar() {
                   handleCloseNavMenu();
                   navigate("/contact");
                 }}
+                sx={{ py: 1.5 }}
               >
-                <Typography>Contact Us</Typography>
+                <Typography sx={{ fontWeight: 500, color: "#333" }}>Contact Us</Typography>
               </MenuItem>
-
             </Menu>
           </Box>
 
-          {/* Logo for Mobile */}
-          <Typography
-            variant="h5"
-            noWrap
+          {/* Mobile Logo */}
+          <Box
             sx={{
-              mr: 2,
               display: { xs: "flex", md: "none" },
+              alignItems: "center",
+              gap: 1,
               flexGrow: 1,
-              fontFamily: "monospace",
-              fontWeight: 700,
-              letterSpacing: ".3rem",
-              color: "inherit",
               cursor: "pointer",
             }}
             onClick={() => navigate("/home")}
           >
-            Sathi
-          </Typography>
+            <Typography
+              variant="h5"
+              noWrap
+              sx={{
+                fontFamily: '"Georgia", serif',
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+                color: "white",
+              }}
+            >
+              Sathi
+            </Typography>
+          </Box>
 
           {/* Desktop Navigation */}
-          <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
+          <Box 
+            sx={{ 
+              flexGrow: 1, 
+              display: { xs: "none", md: "flex" }, 
+              gap: 0.5,
+            }}
+          >
             <Button
-              sx={{ my: 2, color: "white" }}
               onClick={() => navigate("/home")}
+              sx={{
+                color: "white",
+                fontWeight: 500,
+                fontSize: "0.95rem",
+                textTransform: "none",
+                px: 3,
+                py: 1,
+                borderRadius: "8px",
+                '&:hover': {
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                },
+              }}
             >
               Home
             </Button>
 
             <Button
-              sx={{ my: 2, color: "white" }}
               onClick={() => navigate("/contact")}
+              sx={{
+                color: "rgba(255,255,255,0.9)",
+                fontWeight: 500,
+                fontSize: "0.95rem",
+                textTransform: "none",
+                px: 3,
+                py: 1,
+                borderRadius: "8px",
+                '&:hover': {
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                  color: "white",
+                },
+              }}
             >
               Contact Us
             </Button>
-
           </Box>
-        
+
+          {/* User Profile Section */}
           <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title="Open settings">
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Typography>Profile</Typography>
+            <Tooltip title="Account settings">
+              <IconButton 
+                onClick={handleOpenUserMenu} 
+                sx={{ 
+                  p: 0.5,
+                  border: "2px solid rgba(255,255,255,0.3)",
+                  borderRadius: "12px",
+                  transition: "all 0.2s ease",
+                  '&:hover': {
+                    border: "2px solid rgba(255,255,255,0.6)",
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                  }
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1 }}>
+                  <Avatar 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      bgcolor: "rgba(255,255,255,0.2)",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      color: "white",
+                    }}
+                  >
+                    U
+                  </Avatar>
+                  <Typography 
+                    sx={{ 
+                      color: "white", 
+                      fontSize: "0.9rem", 
+                      fontWeight: 500,
+                      display: { xs: "none", sm: "block" }
+                    }}
+                  >
+                    Profile
+                  </Typography>
+                  <KeyboardArrowDownIcon 
+                    sx={{ 
+                      color: "white", 
+                      fontSize: 20,
+                      display: { xs: "none", sm: "block" }
+                    }} 
+                  />
+                </Box>
               </IconButton>
             </Tooltip>
 
@@ -155,7 +261,7 @@ function ResponsiveAppBar() {
               id="user-menu"
               anchorEl={anchorElUser}
               anchorOrigin={{
-                vertical: "top",
+                vertical: "bottom",
                 horizontal: "right",
               }}
               transformOrigin={{
@@ -164,22 +270,44 @@ function ResponsiveAppBar() {
               }}
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
+              PaperProps={{
+                sx: {
+                  mt: 1.5,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                  borderRadius: 2,
+                  minWidth: 200,
+                  overflow: "visible",
+                }
+              }}
             >
               <MenuItem
                 onClick={() => {
                   handleCloseUserMenu();
                   navigate("/profile");
                 }}
+                sx={{ py: 1.5 }}
               >
-                <Typography>Profile</Typography>
+                <Typography sx={{ fontWeight: 500, color: "#333" }}>
+                  My Profile
+                </Typography>
               </MenuItem>
 
-              <MenuItem onClick={handleCloseUserMenu}>
-                <Typography>Account</Typography>
+              <MenuItem 
+                onClick={handleCloseUserMenu}
+                sx={{ py: 1.5 }}
+              >
+                <Typography sx={{ fontWeight: 500, color: "#333" }}>
+                  Account Settings
+                </Typography>
               </MenuItem>
 
-              <MenuItem onClick={handleLogout}>
-                <Typography sx={{ color: "red" }}>
+              <Box sx={{ borderTop: "1px solid #eee", my: 0.5 }} />
+
+              <MenuItem 
+                onClick={handleLogout}
+                sx={{ py: 1.5 }}
+              >
+                <Typography sx={{ fontWeight: 600, color: "#d32f2f" }}>
                   Log Out
                 </Typography>
               </MenuItem>
@@ -191,4 +319,4 @@ function ResponsiveAppBar() {
   );
 }
 
-export default ResponsiveAppBar;
+export default Navbar;
