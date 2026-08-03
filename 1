@@ -1,319 +1,59 @@
-// pages/ProfileRegistration.jsx
-import React, { useState, useContext } from 'react';
+
 import {
-  Container,
-  Paper,
-  Stepper,
-  Step,
-  StepLabel,
-  Button,
   Box,
-  Typography,
-  useTheme,
-  useMediaQuery,
-  Alert
+  Container,
+  styled,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import BasicInfo from '../components/profile/BasicInfo';
-import EducationCareer from '../components/profile/EducationCareer';
-import FamilyDetails from '../components/profile/FamilyDetails';
-import LifestyleHabits from '../components/profile/LifestyleHabits';
-import PartnerPreferences from '../components/profile/PartnerPreferences';
-import PhotoUpload from '../components/profile/PhotoUpload';
-import { AuthContext } from '../context/AuthContext';
-import { createProfile } from '../services/api';
+import HeroImg from '../assets/hero.jpg'
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 
-const steps = [
-  'Basic Information',
-  'Education & Career',
-  'Family Details',
-  'Lifestyle & Habits',
-  'Partner Preferences',
-  'Photo Upload'
-];
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  marginTop: theme.spacing(4),
-  marginBottom: theme.spacing(4),
-  [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(2),
+const HeroBackground = styled(Box)(({ theme }) => ({
+  background: 'linear-gradient(135deg,rgb(85, 53, 41) 0%,rgb(227, 84, 84) 100%)',
+  minHeight: '90vh',
+  display: 'flex',
+  alignItems: 'center',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 5,
+    right: 0,
+    width: '100%',
+    height: '100%',
+    background: `url(${HeroImg}) center/cover`,
+    opacity: 0.6,
   },
 }));
 
-const ProfileRegistration = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { user } = useContext(AuthContext);
-  const [activeStep, setActiveStep] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
-  const [profileData, setProfileData] = useState({
-    basicInfo: {
-      profileFor: '',
-      firstName: '',
-      lastName: '',
-      gender: '',
-      dateOfBirth: '',
-      heightCm: '',
-      weightKg: '',
-      bodyType: '',
-      complexion: '',
-      maritalStatus: '',
-      religion: '',
-      caste: '',
-      subCaste: '',
-      motherTongue: '',
-      country: 'India',
-      state: '',
-      city: '',
-      aboutMe: ''
-    },
-    educationCareer: {
-      highestEducation: '',
-      educationDetail: '',
-      occupation: '',
-      employmentType: '',
-      annualIncome: '',
-      companyName: '',
-      jobLocation: ''
-    },
-    familyDetails: {
-      fatherName: '',
-      fatherOccupation: '',
-      motherName: '',
-      motherOccupation: '',
-      familyType: '',
-      familyStatus: '',
-      familyValues: '',
-      siblings: 0,
-      marriedSiblings: 0,
-      familyLocation: '',
-      aboutFamily: ''
-    },
-    lifestyleHabits: {
-      diet: '',
-      smoking: '',
-      drinking: '',
-      hobbies: [],
-      interests: []
-    },
-    partnerPreferences: {
-      minAge: '',
-      maxAge: '',
-      minHeight: '',
-      maxHeight: '',
-      maritalStatus: '',
-      religion: '',
-      caste: '',
-      motherTongue: '',
-      minEducation: '',
-      occupation: '',
-      minIncome: '',
-      maxIncome: '',
-      country: '',
-      state: '',
-      city: ''
-    },
-    photos: []
-  });
 
-  const handleNext = () => {
-    if (validateStep()) {
-      setActiveStep((prevStep) => prevStep + 1);
-      setError('');
-    }
-  };
-
-  const handleBack = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-    setError('');
-  };
-
-  const validateStep = () => {
-    const currentStep = steps[activeStep];
-    let isValid = true;
-
-    switch (currentStep) {
-      case 'Basic Information':
-        if (!profileData.basicInfo.firstName || !profileData.basicInfo.gender || 
-            !profileData.basicInfo.dateOfBirth || !profileData.basicInfo.religion) {
-          setError('Please fill all required fields');
-          isValid = false;
-        }
-        break;
-      case 'Education & Career':
-        if (!profileData.educationCareer.highestEducation || 
-            !profileData.educationCareer.occupation) {
-          setError('Please fill all required fields');
-          isValid = false;
-        }
-        break;
-      default:
-        break;
-    }
-
-    return isValid;
-  };
-
-  const updateProfileData = (section, data) => {
-    setProfileData(prev => ({
-      ...prev,
-      [section]: data
-    }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const formData = new FormData();
-      
-      // Append text data
-      formData.append('profileData', JSON.stringify(profileData));
-      
-      // Append photos
-      profileData.photos.forEach((photo, index) => {
-        formData.append(`photo_${index}`, photo.file);
-        formData.append(`photo_order_${index}`, index);
-      });
-
-      const response = await createProfile(formData);
-      
-      if (response.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 2000);
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStepContent = (step) => {
-    switch (step) {
-      case 0:
-        return <BasicInfo 
-          data={profileData.basicInfo} 
-          updateData={(data) => updateProfileData('basicInfo', data)} 
-        />;
-      case 1:
-        return <EducationCareer 
-          data={profileData.educationCareer}
-          updateData={(data) => updateProfileData('educationCareer', data)}
-        />;
-      case 2:
-        return <FamilyDetails 
-          data={profileData.familyDetails}
-          updateData={(data) => updateProfileData('familyDetails', data)}
-        />;
-      case 3:
-        return <LifestyleHabits 
-          data={profileData.lifestyleHabits}
-          updateData={(data) => updateProfileData('lifestyleHabits', data)}
-        />;
-      case 4:
-        return <PartnerPreferences 
-          data={profileData.partnerPreferences}
-          updateData={(data) => updateProfileData('partnerPreferences', data)}
-        />;
-      case 5:
-        return <PhotoUpload 
-          data={profileData.photos}
-          updateData={(data) => updateProfileData('photos', data)}
-        />;
-      default:
-        return 'Unknown step';
-    }
-  };
-
-  if (success) {
-    return (
-      <Container maxWidth="md">
-        <StyledPaper>
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="h4" gutterBottom color="primary">
-              Profile Created Successfully!
-            </Typography>
-            <Typography variant="body1">
-              Redirecting to dashboard...
-            </Typography>
-          </Box>
-        </StyledPaper>
-      </Container>
-    );
-  }
-
+function Hero() {
   return (
-    <Container maxWidth="md">
-      <StyledPaper>
-        <Typography variant="h4" align="center" gutterBottom color="primary" fontWeight="bold">
-          Create Your Profile
-        </Typography>
-        
-        <Stepper 
-          activeStep={activeStep} 
-          alternativeLabel={!isMobile}
-          orientation={isMobile ? 'vertical' : 'horizontal'}
-          sx={{ mb: 4 }}
-        >
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-
-        <Box sx={{ mt: 2, mb: 2 }}>
-          {getStepContent(activeStep)}
-        </Box>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            variant="outlined"
-          >
-            Back
-          </Button>
-          
+    <>
+      <HeroBackground>
+        <Container maxWidth="xl">
           <Box>
-            {activeStep === steps.length - 1 ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                disabled={loading}
-                size="large"
-              >
-                {loading ? 'Creating Profile...' : 'Submit Profile'}
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={handleNext}
-                size="large"
-              >
-                Next
-              </Button>
-            )}
-          </Box>
-        </Box>
-      </StyledPaper>
-    </Container>
-  );
-};
+            <Paper sx={{ marginTop: 55, textAlign: 'center', padding: 2, opacity: 10 ,background: 'rgb(253, 253, 253)' }}>
+              <Typography variant="h5" sx={{ fontFamily: 'ui-sans-serif', fontSize: 20, color: 'rgb(247, 68, 68)' }}>
+                Sathi
+              </Typography>
+              <Typography variant="h3" sx={{ fontFamily: 'ui-sans-serif', fontSize: 35, fontWeight: 700, paddingBottom: 2 }}>
+                No. 1 Matchmaking Service for People
+              </Typography>
 
-export default ProfileRegistration;
+              <Typography variant="h6" gutterBottom sx={{ fontFamily: 'ui-sans-serif', color: 'rgb(243, 30, 30)' }}>
+                Our matrimony service also comes with assured meetings, ensuring you can get in touch with the best matches and their families.
+              </Typography>
+            </Paper>
+          </Box>
+
+        </Container>
+      </HeroBackground>
+
+    </>
+  );
+}
+
+export default Hero;
