@@ -1065,46 +1065,7 @@ export default function SuccessStories() {
                             </Grid>
                         )}
 
-                        {/* Call to Action */}
-                        <Box textAlign="center" mt={6} p={5} sx={{ 
-                            bgcolor: '#fdf2f8', 
-                            borderRadius: 2,
-                            border: '2px dashed #e91e63',
-                            position: 'relative',
-                            overflow: 'hidden',
-                        }}>
-                            <FavoriteIcon sx={{ 
-                                position: 'absolute',
-                                top: -20,
-                                right: -20,
-                                fontSize: 100,
-                                color: 'rgba(233, 30, 99, 0.1)',
-                            }} />
-                            <Typography variant="h5" gutterBottom sx={{ color: '#c2185b', fontWeight: 'bold' }}>
-                                Found Your Perfect Match? 💑
-                            </Typography>
-                            <Typography variant="body1" color="text.secondary" gutterBottom>
-                                We'd love to hear your story! Share your journey and inspire others to find their soulmate.
-                            </Typography>
-                            <Button
-                                variant="contained"
-                                size="large"
-                                startIcon={<FavoriteIcon />}
-                                onClick={() => setSubmitOpen(true)}
-                                sx={{
-                                    mt: 2,
-                                    px: 4,
-                                    py: 1.5,
-                                    fontSize: '1.1rem',
-                                    background: 'linear-gradient(45deg, #c2185b 30%, #e91e63 90%)',
-                                    '&:hover': {
-                                        background: 'linear-gradient(45deg, #ad1457 30%, #c2185b 90%)',
-                                    }
-                                }}
-                            >
-                                Share Your Success Story
-                            </Button>
-                        </Box>
+                        
                     </StyledPaper>
                 </Container>
             </Box>
@@ -1116,27 +1077,6 @@ export default function SuccessStories() {
                 </ScrollToTopButton>
             )}
 
-            {/* Dialogs */}
-            <StoryDetailDialog />
-            <ShareDialog />
-            <SubmitStoryDialog />
-
-            {/* Snackbar for notifications */}
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={4000}
-                onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-                <Alert 
-                    onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
-                    severity={snackbar.severity}
-                    variant="filled"
-                    sx={{ width: '100%' }}
-                >
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
         </>
     );
 }
