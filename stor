@@ -1,0 +1,1142 @@
+import {
+    Box,
+    Container,
+    CssBaseline,
+    Grid,
+    Paper,
+    Typography,
+    Divider,
+    Card,
+    CardContent,
+    CardMedia,
+    Alert,
+    Snackbar,
+    Avatar,
+    Chip,
+    Button,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    Skeleton,
+    Fab,
+    Tabs,
+    Tab,
+    Rating,
+    AvatarGroup,
+    InputAdornment,
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import ShareIcon from '@mui/icons-material/Share';
+import AddIcon from '@mui/icons-material/Add';
+import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
+import GroupsIcon from '@mui/icons-material/Groups';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
+import CelebrationIcon from '@mui/icons-material/Celebration';
+import WcIcon from '@mui/icons-material/Wc';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+import CloseIcon from '@mui/icons-material/Close';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import SendIcon from '@mui/icons-material/Send';
+import EmailIcon from '@mui/icons-material/Email';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { useState, useEffect } from "react";
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(4),
+    borderRadius: 16,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+    [theme.breakpoints.down('sm')]: {
+        padding: theme.spacing(2),
+        borderRadius: 12,
+    },
+}));
+
+const StoryCard = styled(Card)(({ theme }) => ({
+    height: '100%',
+    transition: 'transform 0.3s, box-shadow 0.3s',
+    cursor: 'pointer',
+    overflow: 'hidden',
+    position: 'relative',
+    '&:hover': {
+        transform: 'translateY(-8px)',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+    },
+}));
+
+const HeroSection = styled(Box)(({ theme }) => ({
+    background: 'linear-gradient(135deg, #c2185b 0%, #e91e63 50%, #f06292 100%)',
+    borderRadius: 16,
+    padding: theme.spacing(6, 4),
+    color: 'white',
+    textAlign: 'center',
+    marginBottom: theme.spacing(4),
+    position: 'relative',
+    overflow: 'hidden',
+    '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: -50,
+        right: -50,
+        width: 200,
+        height: 200,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.1)',
+    },
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: -30,
+        left: -30,
+        width: 150,
+        height: 150,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.1)',
+    },
+}));
+
+const LikeButton = styled(IconButton)(({ isliked }) => ({
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'white',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    zIndex: 1,
+    '&:hover': {
+        backgroundColor: '#fce4ec',
+    },
+    color: isliked ? '#e91e63' : 'grey',
+}));
+
+const ScrollToTopButton = styled(Fab)(({ theme }) => ({
+    position: 'fixed',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#c2185b',
+    color: 'white',
+    '&:hover': {
+        backgroundColor: '#ad1457',
+    },
+}));
+
+const VisuallyHiddenInput = styled('input')({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: 1,
+    overflow: 'hidden',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    whiteSpace: 'nowrap',
+    width: 1,
+});
+
+export default function SuccessStories() {
+    const [stories, setStories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+    const [selectedStory, setSelectedStory] = useState(null);
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
+    const [submitOpen, setSubmitOpen] = useState(false);
+    const [showScrollTop, setShowScrollTop] = useState(false);
+    const [tabValue, setTabValue] = useState(0);
+    const [likedStories, setLikedStories] = useState(new Set());
+    
+    // Submit story form
+    const [storyForm, setStoryForm] = useState({
+        brideName: '',
+        groomName: '',
+        weddingDate: '',
+        location: '',
+        story: '',
+        advice: '',
+    });
+
+    // Fake success stories data
+    const fakeStories = [
+        {
+            id: 1,
+            brideName: 'Priya Sharma',
+            groomName: 'Rahul Verma',
+            brideAge: 26,
+            groomAge: 28,
+            weddingDate: '2024-01-15',
+            location: 'Mumbai, Maharashtra',
+            story: 'We connected on this platform in March 2023. After months of chatting and getting to know each other, we met in person at a coffee shop in Bandra. The moment we saw each other, we knew we were meant to be. Our families were very supportive, and we got married in a beautiful ceremony at the Taj Mahal Palace surrounded by 500 loved ones. The journey from strangers to soulmates has been nothing short of magical.',
+            advice: 'Be honest in your profile and communicate openly. The right person will appreciate you for who you are, not who you pretend to be. Take your time to know each other.',
+            likes: 128,
+            rating: 5,
+            matchedDate: '2023-03-10',
+            proposalStory: 'Rahul proposed at the same coffee shop where we had our first date, with a flash mob and our families present!',
+        },
+        {
+            id: 2,
+            brideName: 'Anjali Patel',
+            groomName: 'Vikram Singh',
+            brideAge: 25,
+            groomAge: 30,
+            weddingDate: '2024-03-20',
+            location: 'Delhi, NCR',
+            story: 'Vikram and I were both skeptical about online matrimony, but this platform changed our perspective completely. Our first conversation lasted 4 hours! We discovered we shared the same values, life goals, and even the same favorite movie. Despite coming from different cultural backgrounds, our families bonded over our happiness. Today, we are happily married and grateful for this platform that brought us together.',
+            advice: 'Don\'t judge too quickly based on profiles alone. Give people a chance to show their true selves beyond the pictures and biodata. Real connection takes time.',
+            likes: 95,
+            rating: 4,
+            matchedDate: '2023-06-22',
+            proposalStory: 'Vikram surprised me with a proposal at India Gate at midnight, with our favorite song playing in the background.',
+        },
+        {
+            id: 3,
+            brideName: 'Meera Reddy',
+            groomName: 'Arjun Krishnan',
+            brideAge: 27,
+            groomAge: 29,
+            weddingDate: '2024-05-10',
+            location: 'Bangalore, Karnataka',
+            story: 'Being from different states - I\'m Telugu and he\'s Tamil - we never thought we would find each other. But destiny had other plans. We matched on this site, and despite the cultural differences, our families surprised us by embracing our union wholeheartedly. Our wedding was a beautiful fusion of Telugu and Tamil traditions, and it was the most colorful celebration of love we could have imagined.',
+            advice: 'Cultural differences can be beautiful if you embrace them with an open heart. Love transcends language and tradition when you\'re committed to understanding each other.',
+            likes: 156,
+            rating: 5,
+            matchedDate: '2023-09-05',
+            proposalStory: 'Arjun learned Telugu for 3 months secretly and proposed to me in my mother tongue. It was the most thoughtful gesture ever!',
+        },
+    ];
+
+    useEffect(() => {
+        // Simulate API loading
+        setTimeout(() => {
+            setStories(fakeStories);
+            setLoading(false);
+        }, 1500);
+        
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const handleScroll = () => {
+        setShowScrollTop(window.pageYOffset > 300);
+    };
+
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleLike = (storyId, event) => {
+        event.stopPropagation();
+        setLikedStories(prev => {
+            const newLikes = new Set(prev);
+            if (newLikes.has(storyId)) {
+                newLikes.delete(storyId);
+            } else {
+                newLikes.add(storyId);
+            }
+            return newLikes;
+        });
+        
+        setSnackbar({
+            open: true,
+            message: likedStories.has(storyId) ? 'Like removed' : 'Story liked! ❤️',
+            severity: 'success'
+        });
+    };
+
+    const handleStoryClick = (story) => {
+        setSelectedStory(story);
+        setDetailOpen(true);
+    };
+
+    const handleShare = (story) => {
+        setSelectedStory(story);
+        setShareOpen(true);
+    };
+
+    const handleTabChange = (event, newValue) => {
+        setTabValue(newValue);
+    };
+
+    const handleSubmitStory = () => {
+        // Validate form
+        if (!storyForm.brideName || !storyForm.groomName || !storyForm.story) {
+            setSnackbar({
+                open: true,
+                message: 'Please fill in all required fields',
+                severity: 'error'
+            });
+            return;
+        }
+
+        // Add new story to the list
+        const newStory = {
+            id: stories.length + 1,
+            ...storyForm,
+            likes: 0,
+            rating: 5,
+            matchedDate: new Date().toISOString().split('T')[0],
+        };
+        
+        setStories(prev => [newStory, ...prev]);
+        setSubmitOpen(false);
+        setStoryForm({
+            brideName: '',
+            groomName: '',
+            weddingDate: '',
+            location: '',
+            story: '',
+            advice: '',
+        });
+        
+        setSnackbar({
+            open: true,
+            message: 'Your success story has been submitted! Thank you for sharing! 🎉',
+            severity: 'success'
+        });
+    };
+
+    const handleCopyLink = () => {
+        const text = `💑 Success Story: ${selectedStory?.brideName} & ${selectedStory?.groomName} found their perfect match! ${selectedStory?.story?.substring(0, 100)}...`;
+        navigator.clipboard.writeText(text);
+        setSnackbar({
+            open: true,
+            message: 'Story copied to clipboard!',
+            severity: 'success'
+        });
+    };
+
+    const filteredStories = () => {
+        switch(tabValue) {
+            case 0: // All Stories
+                return stories;
+            case 1: // Most Loved
+                return [...stories].sort((a, b) => b.likes - a.likes);
+            case 2: // Recent
+                return [...stories].sort((a, b) => new Date(b.weddingDate) - new Date(a.weddingDate));
+            default:
+                return stories;
+        }
+    };
+
+    const totalLikes = stories.reduce((sum, story) => sum + (story.likes || 0), 0);
+
+    // Story Detail Dialog
+    const StoryDetailDialog = () => (
+        <Dialog 
+            open={detailOpen} 
+            onClose={() => setDetailOpen(false)}
+            maxWidth="md"
+            fullWidth
+        >
+            {selectedStory && (
+                <>
+                    <DialogTitle sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        background: 'linear-gradient(135deg, #c2185b 0%, #e91e63 100%)',
+                        color: 'white'
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CelebrationIcon />
+                            <Typography variant="h5" fontWeight="bold">
+                                Success Story
+                            </Typography>
+                        </Box>
+                        <IconButton onClick={() => setDetailOpen(false)} sx={{ color: 'white' }}>
+                            <CloseIcon />
+                        </IconButton>
+                    </DialogTitle>
+                    <DialogContent dividers sx={{ p: 3 }}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12}>
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    gap: 3,
+                                    mb: 4,
+                                    flexWrap: 'wrap'
+                                }}>
+                                    <Box textAlign="center">
+                                        <Avatar sx={{ 
+                                            width: 100, 
+                                            height: 100, 
+                                            bgcolor: '#e91e63',
+                                            mb: 1,
+                                            border: '4px solid #fce4ec'
+                                        }}>
+                                            {selectedStory.brideName?.charAt(0)}
+                                        </Avatar>
+                                        <Typography variant="h6">{selectedStory.brideName}</Typography>
+                                        <Chip 
+                                            icon={<WcIcon />} 
+                                            label={`Bride • ${selectedStory.brideAge} yrs`} 
+                                            size="small" 
+                                            color="secondary" 
+                                            sx={{ mt: 1 }}
+                                        />
+                                    </Box>
+                                    
+                                    <Box textAlign="center">
+                                        <FavoriteIcon sx={{ fontSize: 50, color: '#e91e63' }} />
+                                        <Typography variant="body2" color="text.secondary">
+                                            Matched on
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight="bold">
+                                            {new Date(selectedStory.matchedDate).toLocaleDateString('en-US', { 
+                                                year: 'numeric', 
+                                                month: 'long', 
+                                                day: 'numeric' 
+                                            })}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box textAlign="center">
+                                        <Avatar sx={{ 
+                                            width: 100, 
+                                            height: 100, 
+                                            bgcolor: '#1976d2',
+                                            mb: 1,
+                                            border: '4px solid #e3f2fd'
+                                        }}>
+                                            {selectedStory.groomName?.charAt(0)}
+                                        </Avatar>
+                                        <Typography variant="h6">{selectedStory.groomName}</Typography>
+                                        <Chip 
+                                            icon={<WcIcon />} 
+                                            label={`Groom • ${selectedStory.groomAge} yrs`} 
+                                            size="small" 
+                                            color="primary" 
+                                            sx={{ mt: 1 }}
+                                        />
+                                    </Box>
+                                </Box>
+                            </Grid>
+                            
+                            <Grid item xs={12} md={6}>
+                                <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <CalendarMonthIcon sx={{ mr: 1, color: '#c2185b' }} />
+                                        <Typography variant="body2" color="text.secondary">Wedding Date</Typography>
+                                    </Box>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {new Date(selectedStory.weddingDate).toLocaleDateString('en-US', { 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric' 
+                                        })}
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+                            
+                            <Grid item xs={12} md={6}>
+                                <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <LocationOnIcon sx={{ mr: 1, color: '#c2185b' }} />
+                                        <Typography variant="body2" color="text.secondary">Location</Typography>
+                                    </Box>
+                                    <Typography variant="body1" fontWeight="medium">
+                                        {selectedStory.location}
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <Divider>
+                                    <Chip label="Their Love Story" color="secondary" icon={<FavoriteIcon />} />
+                                </Divider>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <Paper elevation={0} sx={{ p: 3, bgcolor: '#fdf2f8', borderRadius: 2, position: 'relative' }}>
+                                    <FormatQuoteIcon sx={{ 
+                                        position: 'absolute', 
+                                        top: -10, 
+                                        left: -10, 
+                                        fontSize: 60, 
+                                        color: '#e91e63',
+                                        opacity: 0.2 
+                                    }} />
+                                    <Typography variant="body1" sx={{ lineHeight: 1.8, fontStyle: 'italic' }}>
+                                        {selectedStory.story}
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+
+                            {selectedStory.proposalStory && (
+                                <Grid item xs={12}>
+                                    <Paper elevation={0} sx={{ p: 3, bgcolor: '#fff3e0', borderRadius: 2, position: 'relative' }}>
+                                        <FormatQuoteIcon sx={{ 
+                                            position: 'absolute', 
+                                            top: -10, 
+                                            left: -10, 
+                                            fontSize: 60, 
+                                            color: '#ff9800',
+                                            opacity: 0.2 
+                                        }} />
+                                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ color: '#e65100' }}>
+                                            💍 The Proposal
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+                                            {selectedStory.proposalStory}
+                                        </Typography>
+                                    </Paper>
+                                </Grid>
+                            )}
+
+                            {selectedStory.advice && (
+                                <>
+                                    <Grid item xs={12}>
+                                        <Divider>
+                                            <Chip label="Advice for Others" color="primary" icon={<EmojiEmotionsIcon />} />
+                                        </Divider>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Box sx={{ 
+                                            p: 3, 
+                                            bgcolor: '#e3f2fd', 
+                                            borderRadius: 2,
+                                            borderLeft: '4px solid #1976d2'
+                                        }}>
+                                            <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+                                                💡 {selectedStory.advice}
+                                            </Typography>
+                                        </Box>
+                                    </Grid>
+                                </>
+                            )}
+
+                            <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 2 }}>
+                                    <Rating value={selectedStory.rating} readOnly size="large" />
+                                    <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                                        ({selectedStory.likes} people loved this story)
+                                    </Typography>
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </DialogContent>
+                    <DialogActions sx={{ p: 2 }}>
+                        <Button 
+                            onClick={() => handleShare(selectedStory)}
+                            startIcon={<ShareIcon />}
+                            variant="outlined"
+                        >
+                            Share Story
+                        </Button>
+                        <Button 
+                            onClick={() => setDetailOpen(false)} 
+                            variant="contained"
+                            sx={{
+                                background: 'linear-gradient(45deg, #c2185b 30%, #e91e63 90%)',
+                            }}
+                        >
+                            Close
+                        </Button>
+                    </DialogActions>
+                </>
+            )}
+        </Dialog>
+    );
+
+    // Share Dialog
+    const ShareDialog = () => (
+        <Dialog 
+            open={shareOpen} 
+            onClose={() => setShareOpen(false)}
+            maxWidth="sm"
+            fullWidth
+        >
+            <DialogTitle sx={{ textAlign: 'center' }}>
+                <ShareIcon sx={{ fontSize: 40, color: '#c2185b', mb: 1 }} />
+                <Typography variant="h5" fontWeight="bold">
+                    Share This Beautiful Story
+                </Typography>
+            </DialogTitle>
+            <DialogContent>
+                <Box sx={{ p: 2 }}>
+                    <Typography variant="body1" gutterBottom textAlign="center">
+                        Spread the love! Share {selectedStory?.brideName} & {selectedStory?.groomName}'s story
+                    </Typography>
+                    
+                    <Box sx={{ 
+                        display: 'flex', 
+                        gap: 2, 
+                        mt: 3, 
+                        justifyContent: 'center',
+                        flexWrap: 'wrap'
+                    }}>
+                        <Button 
+                            variant="contained" 
+                            startIcon={<FacebookIcon />}
+                            sx={{ bgcolor: '#4267B2', '&:hover': { bgcolor: '#365899' } }}
+                        >
+                            Facebook
+                        </Button>
+                        <Button 
+                            variant="contained" 
+                            startIcon={<TwitterIcon />}
+                            sx={{ bgcolor: '#1DA1F2', '&:hover': { bgcolor: '#0d8bd9' } }}
+                        >
+                            Twitter
+                        </Button>
+                        <Button 
+                            variant="contained" 
+                            startIcon={<WhatsAppIcon />}
+                            sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1da851' } }}
+                        >
+                            WhatsApp
+                        </Button>
+                        <Button 
+                            variant="contained" 
+                            startIcon={<EmailIcon />}
+                            sx={{ bgcolor: '#EA4335', '&:hover': { bgcolor: '#d33426' } }}
+                        >
+                            Email
+                        </Button>
+                    </Box>
+                    
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        sx={{ mt: 3 }}
+                        value={`💑 Success Story: ${selectedStory?.brideName} & ${selectedStory?.groomName} found their perfect match!\n\n${selectedStory?.story?.substring(0, 150)}...\n\nFind your soulmate too! Join now.`}
+                        InputProps={{ readOnly: true }}
+                        variant="outlined"
+                    />
+                    
+                    <Button 
+                        fullWidth 
+                        variant="outlined" 
+                        sx={{ mt: 2 }}
+                        startIcon={<ContentCopyIcon />}
+                        onClick={handleCopyLink}
+                    >
+                        Copy Story Link
+                    </Button>
+                </Box>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={() => setShareOpen(false)}>Close</Button>
+            </DialogActions>
+        </Dialog>
+    );
+
+    // Submit Story Dialog
+    const SubmitStoryDialog = () => (
+        <Dialog 
+            open={submitOpen} 
+            onClose={() => setSubmitOpen(false)}
+            maxWidth="md"
+            fullWidth
+        >
+            <DialogTitle sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, #c2185b 0%, #e91e63 100%)',
+                color: 'white'
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CelebrationIcon />
+                    <Typography variant="h5" fontWeight="bold">
+                        Share Your Success Story
+                    </Typography>
+                </Box>
+                <IconButton onClick={() => setSubmitOpen(false)} sx={{ color: 'white' }}>
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+                <Grid container spacing={3} sx={{ mt: 1 }}>
+                    <Grid item xs={12}>
+                        <Typography variant="body1" color="text.secondary" gutterBottom>
+                            Congratulations on finding your perfect match! Share your beautiful journey to inspire others who are still looking for their soulmate.
+                        </Typography>
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Bride's Name *"
+                            value={storyForm.brideName}
+                            onChange={(e) => setStoryForm(prev => ({ ...prev, brideName: e.target.value }))}
+                            placeholder="Enter bride's full name"
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Groom's Name *"
+                            value={storyForm.groomName}
+                            onChange={(e) => setStoryForm(prev => ({ ...prev, groomName: e.target.value }))}
+                            placeholder="Enter groom's full name"
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            label="Wedding Location"
+                            value={storyForm.location}
+                            onChange={(e) => setStoryForm(prev => ({ ...prev, location: e.target.value }))}
+                            placeholder="City, State"
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            type="date"
+                            label="Wedding Date"
+                            InputLabelProps={{ shrink: true }}
+                            value={storyForm.weddingDate}
+                            onChange={(e) => setStoryForm(prev => ({ ...prev, weddingDate: e.target.value }))}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={6}
+                            label="Your Love Story *"
+                            placeholder="Tell us about how you met on our platform, your journey together, special moments, and your wedding day..."
+                            value={storyForm.story}
+                            onChange={(e) => setStoryForm(prev => ({ ...prev, story: e.target.value }))}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            label="Advice for Other Couples"
+                            placeholder="What wisdom would you like to share with others who are searching for their perfect match?"
+                            value={storyForm.advice}
+                            onChange={(e) => setStoryForm(prev => ({ ...prev, advice: e.target.value }))}
+                        />
+                    </Grid>
+                    
+                    <Grid item xs={12}>
+                        <Button
+                            component="label"
+                            variant="outlined"
+                            startIcon={<CloudUploadIcon />}
+                            fullWidth
+                        >
+                            Upload Wedding Photos (Optional)
+                            <VisuallyHiddenInput
+                                type="file"
+                                multiple
+                                accept="image/*"
+                            />
+                        </Button>
+                    </Grid>
+                </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+                <Button onClick={() => setSubmitOpen(false)} variant="outlined">
+                    Cancel
+                </Button>
+                <Button 
+                    variant="contained"
+                    onClick={handleSubmitStory}
+                    startIcon={<SendIcon />}
+                    sx={{
+                        background: 'linear-gradient(45deg, #c2185b 30%, #e91e63 90%)',
+                        '&:hover': {
+                            background: 'linear-gradient(45deg, #ad1457 30%, #c2185b 90%)',
+                        }
+                    }}
+                >
+                    Submit Your Story
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+
+    // Skeleton loading cards
+    const StoryCardSkeleton = () => (
+        <Grid item xs={12} sm={6} md={4}>
+            <Card>
+                <Skeleton variant="rectangular" height={200} />
+                <CardContent>
+                    <Skeleton variant="text" width="60%" height={30} />
+                    <Skeleton variant="text" width="40%" />
+                    <Skeleton variant="text" width="80%" />
+                    <Skeleton variant="text" width="50%" />
+                </CardContent>
+            </Card>
+        </Grid>
+    );
+
+    return (
+        <>
+            <CssBaseline />
+            <Box sx={{ 
+                minHeight: '100vh',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                py: { xs: 2, sm: 3, md: 4 },
+                px: { xs: 1, sm: 2, md: 0 },
+            }}>
+                <Container maxWidth="xl">
+                    {/* Hero Section */}
+                    <HeroSection>
+                        <CelebrationIcon sx={{ fontSize: 60, mb: 2 }} />
+                        <Typography variant="h4" fontWeight="bold" gutterBottom>
+                            Success Stories
+                        </Typography>
+                        <Typography variant="h6" sx={{ mb: 3, opacity: 0.9 }}>
+                            Real couples who found their perfect match on our platform
+                        </Typography>
+                        <Box sx={{ 
+                            display: 'flex', 
+                            gap: 2, 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            flexWrap: 'wrap'
+                        }}>
+                            <Chip 
+                                label={`${stories.length}+ Happy Couples`} 
+                                icon={<GroupsIcon />}
+                                sx={{ 
+                                    bgcolor: 'rgba(255,255,255,0.2)', 
+                                    color: 'white',
+                                    fontWeight: 'bold',
+                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                                }} 
+                            />
+                            <Button
+                                variant="contained"
+                                size="large"
+                                startIcon={<AddIcon />}
+                                onClick={() => setSubmitOpen(true)}
+                                sx={{
+                                    bgcolor: 'white',
+                                    color: '#c2185b',
+                                    fontWeight: 'bold',
+                                    '&:hover': { bgcolor: '#fce4ec' }
+                                }}
+                            >
+                                Share Your Story
+                            </Button>
+                        </Box>
+                    </HeroSection>
+
+                    <StyledPaper elevation={3}>
+                        {/* Stats Bar */}
+                        <Grid container spacing={2} sx={{ mb: 4 }}>
+                            <Grid item xs={4}>
+                                <Paper sx={{ 
+                                    p: 3, 
+                                    textAlign: 'center', 
+                                    bgcolor: '#fdf2f8',
+                                    borderRadius: 2,
+                                    transition: 'transform 0.2s',
+                                    '&:hover': { transform: 'scale(1.05)' }
+                                }}>
+                                    <GroupsIcon sx={{ fontSize: 40, color: '#c2185b' }} />
+                                    <Typography variant="h4" fontWeight="bold" color="#c2185b">
+                                        {stories.length}+
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Happy Couples
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Paper sx={{ 
+                                    p: 3, 
+                                    textAlign: 'center', 
+                                    bgcolor: '#e3f2fd',
+                                    borderRadius: 2,
+                                    transition: 'transform 0.2s',
+                                    '&:hover': { transform: 'scale(1.05)' }
+                                }}>
+                                    <FavoriteIcon sx={{ fontSize: 40, color: '#1976d2' }} />
+                                    <Typography variant="h4" fontWeight="bold" color="#1976d2">
+                                        {totalLikes}+
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Total Likes
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Paper sx={{ 
+                                    p: 3, 
+                                    textAlign: 'center', 
+                                    bgcolor: '#f3e5f5',
+                                    borderRadius: 2,
+                                    transition: 'transform 0.2s',
+                                    '&:hover': { transform: 'scale(1.05)' }
+                                }}>
+                                    <AutoStoriesIcon sx={{ fontSize: 40, color: '#7b1fa2' }} />
+                                    <Typography variant="h4" fontWeight="bold" color="#7b1fa2">
+                                        100%
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Success Rate
+                                    </Typography>
+                                </Paper>
+                            </Grid>
+                        </Grid>
+
+                        {/* Tabs */}
+                        <Tabs 
+                            value={tabValue} 
+                            onChange={handleTabChange} 
+                            centered 
+                            sx={{ mb: 4 }}
+                            textColor="secondary"
+                            indicatorColor="secondary"
+                            variant="fullWidth"
+                        >
+                            <Tab icon={<AutoStoriesIcon />} label="All Stories" />
+                            <Tab icon={<FavoriteIcon />} label="Most Loved" />
+                            <Tab icon={<CelebrationIcon />} label="Recent Weddings" />
+                        </Tabs>
+
+                        {/* Stories Grid */}
+                        {loading ? (
+                            <Grid container spacing={3}>
+                                {[...Array(6)].map((_, index) => (
+                                    <StoryCardSkeleton key={index} />
+                                ))}
+                            </Grid>
+                        ) : filteredStories().length === 0 ? (
+                            <Box textAlign="center" py={8}>
+                                <EmojiEmotionsIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                                <Typography variant="h5" color="text.secondary" gutterBottom>
+                                    No Stories Yet
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" gutterBottom>
+                                    Be the first to share your beautiful success story!
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    size="large"
+                                    startIcon={<AddIcon />}
+                                    onClick={() => setSubmitOpen(true)}
+                                    sx={{ 
+                                        mt: 2,
+                                        background: 'linear-gradient(45deg, #c2185b 30%, #e91e63 90%)',
+                                    }}
+                                >
+                                    Share Your Story
+                                </Button>
+                            </Box>
+                        ) : (
+                            <Grid container spacing={3}>
+                                {filteredStories().map((story) => (
+                                    <Grid item xs={12} sm={6} md={4} key={story.id}>
+                                        <StoryCard onClick={() => handleStoryClick(story)}>
+                                            <LikeButton
+                                                isliked={likedStories.has(story.id) ? 1 : 0}
+                                                onClick={(e) => handleLike(story.id, e)}
+                                                size="small"
+                                            >
+                                                {likedStories.has(story.id) ? 
+                                                    <FavoriteIcon /> : 
+                                                    <FavoriteBorderIcon />
+                                                }
+                                            </LikeButton>
+                                            <CardMedia
+                                                component="div"
+                                                sx={{
+                                                    height: 200,
+                                                    background: 'linear-gradient(135deg, #c2185b 0%, #e91e63 50%, #f06292 100%)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    position: 'relative',
+                                                }}
+                                            >
+                                                <FavoriteIcon sx={{ 
+                                                    fontSize: 100, 
+                                                    color: 'rgba(255,255,255,0.2)',
+                                                    position: 'absolute',
+                                                }} />
+                                                <Box textAlign="center" sx={{ position: 'relative', zIndex: 1 }}>
+                                                    <AvatarGroup max={2} sx={{ justifyContent: 'center', mb: 2 }}>
+                                                        <Avatar sx={{ 
+                                                            bgcolor: 'white', 
+                                                            color: '#c2185b',
+                                                            width: 60, 
+                                                            height: 60,
+                                                            border: '3px solid #c2185b',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            {story.brideName?.charAt(0)}
+                                                        </Avatar>
+                                                        <Avatar sx={{ 
+                                                            bgcolor: 'white', 
+                                                            color: '#1976d2',
+                                                            width: 60, 
+                                                            height: 60,
+                                                            border: '3px solid #1976d2',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            {story.groomName?.charAt(0)}
+                                                        </Avatar>
+                                                    </AvatarGroup>
+                                                    <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
+                                                        📍 {story.location}
+                                                    </Typography>
+                                                </Box>
+                                            </CardMedia>
+                                            <CardContent>
+                                                <Typography variant="h6" gutterBottom sx={{ color: '#c2185b' }}>
+                                                    {story.brideName} & {story.groomName}
+                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                    <CalendarMonthIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} />
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {new Date(story.weddingDate).toLocaleDateString('en-US', { 
+                                                            year: 'numeric', 
+                                                            month: 'long', 
+                                                            day: 'numeric' 
+                                                        })}
+                                                    </Typography>
+                                                </Box>
+                                                <Typography 
+                                                    variant="body2" 
+                                                    color="text.secondary"
+                                                    sx={{
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        display: '-webkit-box',
+                                                        WebkitLineClamp: 3,
+                                                        WebkitBoxOrient: 'vertical',
+                                                        mb: 2,
+                                                        lineHeight: 1.6,
+                                                    }}
+                                                >
+                                                    {story.story}
+                                                </Typography>
+                                                <Box sx={{ 
+                                                    display: 'flex', 
+                                                    justifyContent: 'space-between', 
+                                                    alignItems: 'center' 
+                                                }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        <IconButton 
+                                                            size="small"
+                                                            onClick={(e) => handleLike(story.id, e)}
+                                                        >
+                                                            {likedStories.has(story.id) ? 
+                                                                <FavoriteIcon sx={{ color: '#e91e63' }} /> : 
+                                                                <FavoriteBorderIcon />
+                                                            }
+                                                        </IconButton>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {story.likes + (likedStories.has(story.id) ? 1 : 0)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box>
+                                                        <Rating value={story.rating} size="small" readOnly />
+                                                        <IconButton 
+                                                            size="small"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleShare(story);
+                                                            }}
+                                                        >
+                                                            <ShareIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Box>
+                                                </Box>
+                                            </CardContent>
+                                        </StoryCard>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        )}
+
+                        {/* Call to Action */}
+                        <Box textAlign="center" mt={6} p={5} sx={{ 
+                            bgcolor: '#fdf2f8', 
+                            borderRadius: 2,
+                            border: '2px dashed #e91e63',
+                            position: 'relative',
+                            overflow: 'hidden',
+                        }}>
+                            <FavoriteIcon sx={{ 
+                                position: 'absolute',
+                                top: -20,
+                                right: -20,
+                                fontSize: 100,
+                                color: 'rgba(233, 30, 99, 0.1)',
+                            }} />
+                            <Typography variant="h5" gutterBottom sx={{ color: '#c2185b', fontWeight: 'bold' }}>
+                                Found Your Perfect Match? 💑
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary" gutterBottom>
+                                We'd love to hear your story! Share your journey and inspire others to find their soulmate.
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                size="large"
+                                startIcon={<FavoriteIcon />}
+                                onClick={() => setSubmitOpen(true)}
+                                sx={{
+                                    mt: 2,
+                                    px: 4,
+                                    py: 1.5,
+                                    fontSize: '1.1rem',
+                                    background: 'linear-gradient(45deg, #c2185b 30%, #e91e63 90%)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(45deg, #ad1457 30%, #c2185b 90%)',
+                                    }
+                                }}
+                            >
+                                Share Your Success Story
+                            </Button>
+                        </Box>
+                    </StyledPaper>
+                </Container>
+            </Box>
+
+            {/* Scroll to Top Button */}
+            {showScrollTop && (
+                <ScrollToTopButton onClick={scrollToTop} size="small">
+                    <ArrowUpwardIcon />
+                </ScrollToTopButton>
+            )}
+
+            {/* Dialogs */}
+            <StoryDetailDialog />
+            <ShareDialog />
+            <SubmitStoryDialog />
+
+            {/* Snackbar for notifications */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert 
+                    onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+                    severity={snackbar.severity}
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </>
+    );
+}
