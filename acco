@@ -1,199 +1,118 @@
-import CssBaseline from '@mui/material/CssBaseline';
+import Paper from '@mui/material/Paper';
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
     Box,
-    Container,
-    Grid,
-    TextField,
     Typography,
-    Avatar,
-    Divider,
-    Paper,
-} from "@mui/material";
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
 
-import { useState, useEffect } from 'react';
-import axios from "axios";
+} from "@mui/material";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const SectionTitle = ({ title }) => (
-    <Typography
-        variant="h5"
-        sx={{
-            mt: 4,
-            mb: 2,
-            color: "primary.main",
-            fontWeight: "bold",
-        }}
-    >
-        {title}
-    </Typography>
-);
+export default function Account() {
+    const [accountInfo, setAccountInfo] = useState([]);
 
-function Account() {
-    const [accountInfo, setAccountInfo] = useState(null);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // First try to get user info from local storage
-        const storedUser = localStorage.getItem('user');
-        
-        if (storedUser) {
-            try {
-                const parsedUser = JSON.parse(storedUser);
-                // Set basic info from local storage immediately
-                setAccountInfo({
-                    UserName: parsedUser.username || parsedUser.UserName || 'User',
-                    UserEmail: parsedUser.email || parsedUser.UserEmail || 'No email',
-                    Role: parsedUser.role || parsedUser.Role || 'User',
-                    UserID: parsedUser.id || parsedUser.UserID
-                });
-                
-                // Optionally fetch full details from API
-                showAccount();
-            } catch (error) {
-                console.error("Error parsing stored user:", error);
-                showAccount();
-            }
-        } else {
-            // If no local storage data, fetch from API
-            showAccount();
-        }
+        showAccount();
     }, []);
 
     const showAccount = async () => {
         try {
+            const role = localStorage.getItem("role");
+
             const res = await axios.get(`${API_URL}/auth/user`);
-            console.log("API Response:", res.data);
-            
-            // Update account info with full API response
-            setAccountInfo(res.data);
-            
-            // Optionally update local storage with fresh data
-            const updatedUser = {
-                username: res.data.UserName,
-                email: res.data.UserEmail,
-                role: res.data.Role,
-                id: res.data.UserID
-            };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            
-            setLoading(false);
+            const userData = Array.isArray(res.data)
+                ? res.data
+                : res.data.users || [];
+
+            if (role === "Admin") {
+                setAccountInfo([]);
+            } else {
+
+                const filteredUsers = userData.filter(
+                    (user) => user.Role !== "Admin"
+                );
+                setAccountInfo(filteredUsers);
+            }
         } catch (err) {
-            console.log("Error details:", err.response?.data || err.message);
-            setLoading(false);
+            console.log(err.response?.data || err.message);
+            setAccountInfo([]);
         }
     };
 
     return (
-        <div>
-            <CssBaseline enableColorScheme />
-            <Container maxWidth="lg" sx={{ py: 4 }}>
-                <Box display="flex" justifyContent="center" alignItems="center" mb={4}>
-                    <Typography
-                        variant="h3"
-                        fontWeight="bold"
-                        color="primary"
-                    >
-                        Account Information
-                    </Typography>
-                </Box>
+        <Box className="p-6">
+            <Typography
+                variant="h4"
+                align="center"
+                fontWeight="bold"
+                gutterBottom
+                className="mb-6 text-gray-800"
+            >
+                User Table
+            </Typography>
+            <Typography
+                variant="h6"
+                className="mt-4 text-center text-gray-500"
+            >
+                Total Users: {accountInfo.length}
+            </Typography>
 
-                {loading ? (
-                    <Box display="flex" justifyContent="center" p={4}>
-                        <Typography variant="h6">Loading...</Typography>
-                    </Box>
-                ) : accountInfo ? (
-                    <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-                        {/* Profile Header */}
-                        <Box display="flex" alignItems="center" mb={4}>
-                            <Avatar
-                                sx={{
-                                    width: 100,
-                                    height: 100,
-                                    bgcolor: 'primary.main',
-                                    fontSize: 40,
-                                    mr: 3
-                                }}
-                            >
-                                {accountInfo.UserName?.charAt(0)?.toUpperCase() || 'U'}
-                            </Avatar>
-                            <Box>
-                                <Typography variant="h4" fontWeight="bold">
-                                    {accountInfo.UserName || 'User'}
-                                </Typography>
-                                <Typography variant="body1" color="text.secondary">
-                                    {accountInfo.UserEmail || 'No email'}
-                                </Typography>
-                            </Box>
-                        </Box>
+            <Paper
+                elevation={3}
+                className="overflow-hidden rounded-lg"
+            >
+                <TableContainer className="max-h-[600px]">
+                    <Table stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                
+                                <TableCell
+                                    className="font-bold text-lg bg-gray-100 w-[40%]"
+                                    align="center"
+                                >
+                                    User Name
+                                </TableCell>
+                                <TableCell
+                                    className="font-bold text-lg bg-gray-100 w-[45%]"
+                                    align="center"
+                                >
+                                    User Email
+                                </TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
 
-                        <Divider sx={{ mb: 4 }} />
-
-                        {/* User Information Section */}
-                        <SectionTitle title="User Information" />
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Username"
-                                    value={accountInfo.UserName || ''}
-                                    variant="outlined"
-                                    InputProps={{
-                                        readOnly: true,
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Email"
-                                    value={accountInfo.UserEmail || ''}
-                                    variant="outlined"
-                                    InputProps={{
-                                        readOnly: true,
-                                    }}
-                                />
-                            </Grid>
-                        </Grid>
-
-                        {/* Account Details Section */}
-                        <SectionTitle title="Account Details" />
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Role"
-                                    value={accountInfo.Role || 'User'}
-                                    variant="outlined"
-                                    InputProps={{
-                                        readOnly: true,
-                                    }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} md={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Account Status"
-                                    value='Active'
-                                    variant="outlined"
-                                    InputProps={{
-                                        readOnly: true,
-                                    }}
-                                />
-                            </Grid>
-                        </Grid>
-                    </Paper>
-                ) : (
-                    <Box display="flex" justifyContent="center" p={4}>
-                        <Typography variant="h6" color="error">
-                            No account information found. Please log in again.
-                        </Typography>
-                    </Box>
-                )}
-            </Container>
-        </div>
+                            {accountInfo.map((user) => (
+                                <TableRow
+                                    key={user.UserID}
+                                    className="hover:bg-gray-50 transition-colors"
+                                >
+                                    <TableCell
+                                        align="center"
+                                        className="py-4 font-medium"
+                                    >
+                                        {user.UserName}
+                                    </TableCell>
+                                    <TableCell
+                                        align="center"
+                                        className="py-4 text-gray-600"
+                                    >
+                                        {user.UserEmail}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+        </Box>
     );
 }
-
-export default Account;
