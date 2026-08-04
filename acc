@@ -1,0 +1,270 @@
+import Paper from '@mui/material/Paper';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import {
+    Box,
+    Typography,
+    Avatar,
+    Divider,
+    Grid,
+    Chip,
+    CircularProgress,
+    Alert
+} from "@mui/material";
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import BadgeIcon from '@mui/icons-material/Badge';
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+export default function Account() {
+    const [currentUser, setCurrentUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        fetchCurrentUser();
+    }, []);
+
+    const fetchCurrentUser = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            // Get stored user info
+            const userId = localStorage.getItem("userId");
+            const userEmail = localStorage.getItem("userEmail");
+            const userName = localStorage.getItem("userName");
+            const role = localStorage.getItem("role");
+            
+            console.log("Stored user info:", { userId, userEmail, userName, role });
+
+            const res = await axios.get(`${API_URL}/auth/user`);
+            const userData = Array.isArray(res.data)
+                ? res.data
+                : res.data.users || res.data.data || [];
+
+            console.log("API Response:", userData);
+
+            if (userData.length === 0) {
+                // If no users returned from API, use localStorage data
+                if (userName || userEmail) {
+                    setCurrentUser({
+                        UserID: userId || 'N/A',
+                        UserName: userName || 'Unknown',
+                        UserEmail: userEmail || 'N/A',
+                        Role: role || 'User'
+                    });
+                } else {
+                    setError("No user information available");
+                }
+                return;
+            }
+
+            // Try multiple ways to find the current user
+            let currentUserData = null;
+            
+            // Try matching by UserID (with type coercion)
+            if (userId) {
+                currentUserData = userData.find(
+                    (user) => String(user.UserID) === String(userId) || 
+                             String(user.id) === String(userId) ||
+                             String(user._id) === String(userId)
+                );
+            }
+            
+            // If not found by ID, try by email
+            if (!currentUserData && userEmail) {
+                currentUserData = userData.find(
+                    (user) => user.UserEmail?.toLowerCase() === userEmail.toLowerCase() ||
+                             user.email?.toLowerCase() === userEmail.toLowerCase()
+                );
+            }
+            
+            // If not found by email, try by username
+            if (!currentUserData && userName) {
+                currentUserData = userData.find(
+                    (user) => user.UserName?.toLowerCase() === userName.toLowerCase() ||
+                             user.username?.toLowerCase() === userName.toLowerCase()
+                );
+            }
+
+            console.log("Found user:", currentUserData);
+
+            if (currentUserData) {
+                // Normalize the user data structure
+                setCurrentUser({
+                    UserID: currentUserData.UserID || currentUserData.id || currentUserData._id,
+                    UserName: currentUserData.UserName || currentUserData.username || currentUserData.name,
+                    UserEmail: currentUserData.UserEmail || currentUserData.email,
+                    Role: currentUserData.Role || currentUserData.role || 'User'
+                });
+            } else if (userName || userEmail) {
+                // Use localStorage data as fallback
+                setCurrentUser({
+                    UserID: userId || 'N/A',
+                    UserName: userName || 'Unknown',
+                    UserEmail: userEmail || 'N/A',
+                    Role: role || 'User'
+                });
+            } else {
+                setError("Could not find user information. Please try logging in again.");
+            }
+        } catch (err) {
+            console.error("Error fetching user:", err.response?.data || err.message);
+            
+            // Try to use localStorage as fallback
+            const userName = localStorage.getItem("userName");
+            const userEmail = localStorage.getItem("userEmail");
+            
+            if (userName || userEmail) {
+                setCurrentUser({
+                    UserID: localStorage.getItem("userId") || 'N/A',
+                    UserName: userName || 'Unknown',
+                    UserEmail: userEmail || 'N/A',
+                    Role: localStorage.getItem("role") || 'User'
+                });
+            } else {
+                setError("Failed to fetch user information. Please try again.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <Box className="flex justify-center items-center h-64">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error && !currentUser) {
+        return (
+            <Box className="p-6">
+                <Alert severity="error" className="mb-4">{error}</Alert>
+                <Alert severity="info">
+                    Please make sure you are logged in. Try logging out and logging back in.
+                </Alert>
+            </Box>
+        );
+    }
+
+    if (!currentUser) {
+        return (
+            <Box className="p-6">
+                <Alert severity="warning">No user information available</Alert>
+            </Box>
+        );
+    }
+
+    return (
+        <Box className="p-6 max-w-2xl mx-auto">
+            <Typography
+                variant="h4"
+                align="center"
+                fontWeight="bold"
+                gutterBottom
+                className="mb-8 text-gray-800"
+            >
+                My Account
+            </Typography>
+
+            <Paper elevation={3} className="p-8 rounded-lg">
+                {/* User Avatar Section */}
+                <Box className="flex flex-col items-center mb-6">
+                    <Avatar
+                        sx={{
+                            width: 100,
+                            height: 100,
+                            bgcolor: 'primary.main',
+                            fontSize: '2.5rem',
+                            mb: 2
+                        }}
+                    >
+                        {currentUser.UserName?.charAt(0)?.toUpperCase() || 'U'}
+                    </Avatar>
+                    <Typography variant="h5" fontWeight="bold" className="text-gray-800">
+                        {currentUser.UserName}
+                    </Typography>
+                    <Chip
+                        label={currentUser.Role || "User"}
+                        color="primary"
+                        size="small"
+                        className="mt-2"
+                    />
+                </Box>
+
+                <Divider className="my-6" />
+
+                {/* User Details Section */}
+                <Grid container spacing={3}>
+                    {/* Username */}
+                    <Grid item xs={12}>
+                        <Box className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <PersonIcon className="text-blue-600 mr-3" sx={{ fontSize: 28 }} />
+                            <Box>
+                                <Typography variant="caption" className="text-gray-500">
+                                    Username
+                                </Typography>
+                                <Typography variant="body1" fontWeight="medium" className="text-gray-800">
+                                    {currentUser.UserName}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Grid>
+
+                    {/* Email */}
+                    <Grid item xs={12}>
+                        <Box className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <EmailIcon className="text-blue-600 mr-3" sx={{ fontSize: 28 }} />
+                            <Box>
+                                <Typography variant="caption" className="text-gray-500">
+                                    Email Address
+                                </Typography>
+                                <Typography variant="body1" fontWeight="medium" className="text-gray-800">
+                                    {currentUser.UserEmail}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Grid>
+
+                    {/* User ID */}
+                    {currentUser.UserID && (
+                        <Grid item xs={12}>
+                            <Box className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <BadgeIcon className="text-blue-600 mr-3" sx={{ fontSize: 28 }} />
+                                <Box>
+                                    <Typography variant="caption" className="text-gray-500">
+                                        User ID
+                                    </Typography>
+                                    <Typography variant="body1" fontWeight="medium" className="text-gray-800">
+                                        {currentUser.UserID}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Grid>
+                    )}
+
+                    {/* Role */}
+                    {currentUser.Role && (
+                        <Grid item xs={12}>
+                            <Box className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <PersonIcon className="text-blue-600 mr-3" sx={{ fontSize: 28 }} />
+                                <Box>
+                                    <Typography variant="caption" className="text-gray-500">
+                                        Role
+                                    </Typography>
+                                    <Typography variant="body1" fontWeight="medium" className="text-gray-800">
+                                        {currentUser.Role}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Grid>
+                    )}
+                </Grid>
+            </Paper>
+        </Box>
+    );
+}
