@@ -1,90 +1,31 @@
-const db = require("../config/database");
+import { CustomThemeProvider, useThemeContext } from './ThemeContext';
+import Account from './Account';
+import { Button, Box } from '@mui/material';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
-const getProfile = (req, res) => {
-    db.query("SELECT * FROM profile", (err, result) => {
-        if (err) {
-            console.error("Error fetching profiles:", err);
-            return res.status(500).json({ error: "Database error", details: err.message });
-        }
-        res.json(result);
-    });
-};
+function ThemeToggleButton() {
+    const { darkMode, toggleTheme } = useThemeContext();
 
-const postProfile = (req, res) => {
-    const { gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height } = req.body;
-    
-    // Basic validation
-    if (!name || !email) {
-        return res.status(400).json({ error: "Name and email are required" });
-    }
+    return (
+        <Button
+            onClick={toggleTheme}
+            startIcon={darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            variant="outlined"
+            sx={{ position: 'fixed', top: 20, right: 20 }}
+        >
+            {darkMode ? 'Light Mode' : 'Dark Mode'}
+        </Button>
+    );
+}
 
-    const sql = `
-        INSERT INTO profile
-        (Gender, Name, Email, Age, DOB, Contact, Address, Language, Religion,
-         Education, Occupation, CompanyName, MonthlyIncome, Image, Status,
-         Detail, Physically, Height)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+function App() {
+    return (
+        <CustomThemeProvider>
+            <ThemeToggleButton />
+            <Account />
+        </CustomThemeProvider>
+    );
+}
 
-    const values = [gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height];
-
-    db.query(sql, values, (err, result) => {
-        if (err) {
-            console.error("Error inserting profile:", err);
-            return res.status(500).json({ error: "Database error", details: err.message });
-        }
-
-        res.status(201).json({
-            message: "Added Successfully",
-            id: result.insertId,
-        });
-    });
-};
-
-const updateProfile = (req, res) => {
-    const { id } = req.params;
-    const { gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height } = req.body;
-
-    const sql = `
-        UPDATE profile 
-        SET Gender=?, Name=?, Email=?, Age=?, DOB=?, Contact=?, Address=?, 
-            Language=?, Religion=?, Education=?, Occupation=?, CompanyName=?, 
-            MonthlyIncome=?, Image=?, Status=?, Detail=?, Physically=?, Height=?
-        WHERE RegisterID = ?
-    `;
-
-    const values = [gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height, id];
-
-    db.query(sql, values, (err, result) => {
-        if (err) {
-            console.error("Error updating profile:", err);
-            return res.status(500).json({ error: "Database error", details: err.message });
-        }
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Profile not found" });
-        }
-        
-        res.json({ message: "Updated Successfully" });
-    });
-};
-
-const deleteProfile = (req, res) => {
-    const { id } = req.params;
-    const sql = "DELETE FROM profile WHERE RegisterID = ?";
-    
-    db.query(sql, [id], (err, result) => {
-        if (err) {
-            console.error("Error deleting profile:", err);
-            return res.status(500).json({ error: "Database error", details: err.message });
-        }
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Profile not found" });
-        }
-        
-        res.json({ message: "Deleted Successfully" });
-    });
-};
-
-module.exports = { getProfile, postProfile, updateProfile, deleteProfile };
+export default App;
