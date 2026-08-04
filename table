@@ -1,0 +1,62 @@
+//import { DataGrid } from '@mui/x-data-grid';
+import Paper from '@mui/material/Paper';
+import { useState, useEffect } from "react";
+import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
+import {
+    Box,
+    Typography,
+
+} from "@mui/material";
+
+
+export default function DataTable() {
+    const [accountInfo, setAccountInfo] = useState([])
+
+    useEffect(() => {
+        showAccount();
+    }, []);
+
+    const showAccount = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/auth/user`);
+            console.log("API Response:", res.data);
+            if(res.data.UserName === "Admin"){
+                setAccountInfo(null);
+            }
+            setAccountInfo(res.data);
+        } catch (err) {
+            console.log("Error details:", err.response?.data || err.message);
+        }
+    };
+
+
+    return (
+        <Box>
+            <Box>
+                <Typography Typography variant="h4" align="center" fontWeight="bold" gutterBottom> User Table</Typography>
+                <Paper sx={{ height: 400, width: '100%', padding: 5 }} >
+
+                    <table class="table-fixed" style={{ width: '100%' }}>
+                        <thead >
+                            <tr>
+                                <th style={{ width: '10%', textAlign: 'center',fontWeight:300,fontSize:30 }}>ID</th>
+                                <th style={{ width: '40%', textAlign: 'center' }}>User Name</th>
+                                <th style={{ width: '40%', textAlign: 'center' }}>User Email</th>
+                            </tr>
+                        </thead>
+                        {accountInfo.map((user) => (
+                            <tbody >
+                                <tr key={user.UserID}>
+                                    <td style={{ textAlign: 'center' }}>{user.UserID}</td>
+                                    <td style={{ textAlign: 'center' }}>{user.UserName}</td>
+                                    <td style={{ textAlign: 'center' }}>{user.UserEmail}</td>
+                                </tr>
+                            </tbody>
+                        ))}
+                    </table>
+                </Paper>
+            </Box>
+        </Box>
+    );
+}
