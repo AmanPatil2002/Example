@@ -1,17 +1,28 @@
-//import { DataGrid } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';
 import { useState, useEffect } from "react";
 import axios from "axios";
-const API_URL = import.meta.env.VITE_API_URL;
 import {
     Box,
     Typography,
-
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    TablePagination,
+    CircularProgress,
+    Alert,
 } from "@mui/material";
 
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function DataTable() {
-    const [accountInfo, setAccountInfo] = useState([])
+    const [accountInfo, setAccountInfo] = useState([]);
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         showAccount();
@@ -19,44 +30,161 @@ export default function DataTable() {
 
     const showAccount = async () => {
         try {
+            setLoading(true);
             const res = await axios.get(`${API_URL}/auth/user`);
             console.log("API Response:", res.data);
-            if(res.data.UserName === "Admin"){
-                setAccountInfo(null);
+            
+            // Handle case where data is an array
+            const userData = Array.isArray(res.data) ? res.data : 
+                           res.data.users ? res.data.users : [];
+            
+            // Filter out admin if needed
+            if (!Array.isArray(res.data) && res.data.UserName === "Admin") {
+                setAccountInfo([]);
+            } else {
+                setAccountInfo(userData);
             }
-            setAccountInfo(res.data);
+            setError(null);
         } catch (err) {
             console.log("Error details:", err.response?.data || err.message);
+            setError("Failed to fetch user data");
+            setAccountInfo([]);
+        } finally {
+            setLoading(false);
         }
     };
 
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    // Calculate paginated data
+    const paginatedUsers = accountInfo.slice(
+        page * rowsPerPage,
+        page * rowsPerPage + rowsPerPage
+    );
+
+    if (loading) {
+        return (
+            <Box className="flex justify-center items-center h-64">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Box className="p-6">
+                <Alert severity="error">{error}</Alert>
+            </Box>
+        );
+    }
 
     return (
-        <Box>
-            <Box>
-                <Typography Typography variant="h4" align="center" fontWeight="bold" gutterBottom> User Table</Typography>
-                <Paper sx={{ height: 400, width: '100%', padding: 5 }} >
-
-                    <table class="table-fixed" style={{ width: '100%' }}>
-                        <thead >
-                            <tr>
-                                <th style={{ width: '10%', textAlign: 'center',fontWeight:300,fontSize:30 }}>ID</th>
-                                <th style={{ width: '40%', textAlign: 'center' }}>User Name</th>
-                                <th style={{ width: '40%', textAlign: 'center' }}>User Email</th>
-                            </tr>
-                        </thead>
-                        {accountInfo.map((user) => (
-                            <tbody >
-                                <tr key={user.UserID}>
-                                    <td style={{ textAlign: 'center' }}>{user.UserID}</td>
-                                    <td style={{ textAlign: 'center' }}>{user.UserName}</td>
-                                    <td style={{ textAlign: 'center' }}>{user.UserEmail}</td>
-                                </tr>
-                            </tbody>
-                        ))}
-                    </table>
-                </Paper>
-            </Box>
+        <Box className="p-6">
+            <Typography 
+                variant="h4" 
+                align="center" 
+                fontWeight="bold" 
+                gutterBottom
+                className="mb-6 text-gray-800"
+            >
+                User Table
+            </Typography>
+            
+            <Paper 
+                elevation={3} 
+                className="overflow-hidden rounded-lg"
+            >
+                <TableContainer className="max-h-[600px]">
+                    <Table stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell 
+                                    className="font-bold text-lg bg-gray-100 w-[15%]"
+                                    align="center"
+                                >
+                                    ID
+                                </TableCell>
+                                <TableCell 
+                                    className="font-bold text-lg bg-gray-100 w-[40%]"
+                                    align="center"
+                                >
+                                    User Name
+                                </TableCell>
+                                <TableCell 
+                                    className="font-bold text-lg bg-gray-100 w-[45%]"
+                                    align="center"
+                                >
+                                    User Email
+                                </TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {paginatedUsers.length > 0 ? (
+                                paginatedUsers.map((user) => (
+                                    <TableRow 
+                                        key={user.UserID}
+                                        className="hover:bg-gray-50 transition-colors"
+                                    >
+                                        <TableCell 
+                                            align="center"
+                                            className="py-4"
+                                        >
+                                            {user.UserID}
+                                        </TableCell>
+                                        <TableCell 
+                                            align="center"
+                                            className="py-4 font-medium"
+                                        >
+                                            {user.UserName}
+                                        </TableCell>
+                                        <TableCell 
+                                            align="center"
+                                            className="py-4 text-gray-600"
+                                        >
+                                            {user.UserEmail}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell 
+                                        colSpan={3} 
+                                        align="center"
+                                        className="py-8 text-gray-500"
+                                    >
+                                        No users found
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                
+                <TablePagination
+                    rowsPerPageOptions={[5, 10, 25, 50]}
+                    component="div"
+                    count={accountInfo.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                    className="border-t border-gray-200 bg-gray-50"
+                />
+            </Paper>
+            
+            <Typography 
+                variant="body2" 
+                className="mt-4 text-center text-gray-500"
+            >
+                Total Users: {accountInfo.length}
+            </Typography>
         </Box>
     );
 }
