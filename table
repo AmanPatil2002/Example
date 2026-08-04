@@ -11,8 +11,6 @@ import {
     TableHead,
     TableRow,
     TablePagination,
-    CircularProgress,
-    Alert,
 } from "@mui/material";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -21,8 +19,6 @@ export default function DataTable() {
     const [accountInfo, setAccountInfo] = useState([]);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
         showAccount();
@@ -30,27 +26,24 @@ export default function DataTable() {
 
     const showAccount = async () => {
         try {
-            setLoading(true);
+            
             const res = await axios.get(`${API_URL}/auth/user`);
             console.log("API Response:", res.data);
             
-            // Handle case where data is an array
+
             const userData = Array.isArray(res.data) ? res.data : 
                            res.data.users ? res.data.users : [];
             
-            // Filter out admin if needed
+
             if (!Array.isArray(res.data) && res.data.UserName === "Admin") {
                 setAccountInfo([]);
             } else {
                 setAccountInfo(userData);
             }
-            setError(null);
+            
         } catch (err) {
             console.log("Error details:", err.response?.data || err.message);
-            setError("Failed to fetch user data");
             setAccountInfo([]);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -63,27 +56,11 @@ export default function DataTable() {
         setPage(0);
     };
 
-    // Calculate paginated data
     const paginatedUsers = accountInfo.slice(
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
     );
 
-    if (loading) {
-        return (
-            <Box className="flex justify-center items-center h-64">
-                <CircularProgress />
-            </Box>
-        );
-    }
-
-    if (error) {
-        return (
-            <Box className="p-6">
-                <Alert severity="error">{error}</Alert>
-            </Box>
-        );
-    }
 
     return (
         <Box className="p-6">
