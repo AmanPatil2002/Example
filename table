@@ -25,27 +25,29 @@ export default function DataTable() {
     }, []);
 
     const showAccount = async () => {
-        try {
-            
-            const res = await axios.get(`${API_URL}/auth/user`);
-            console.log("API Response:", res.data);
-            
+    try {
+        const role = localStorage.getItem("role");
 
-            const userData = Array.isArray(res.data) ? res.data : 
-                           res.data.users ? res.data.users : [];
-            
+        const res = await axios.get(`${API_URL}/auth/user`);
+        const userData = Array.isArray(res.data)
+            ? res.data
+            : res.data.users || [];
 
-            if (!Array.isArray(res.data) && res.data.UserName === "Admin") {
-                setAccountInfo([]);
-            } else {
-                setAccountInfo(userData);
-            }
-            
-        } catch (err) {
-            console.log("Error details:", err.response?.data || err.message);
+        // If logged in as Admin, don't show any users
+        if (role === "Admin") {
             setAccountInfo([]);
+        } else {
+            // Show only users (remove admin records)
+            const filteredUsers = userData.filter(
+                (user) => user.Role !== "Admin"
+            );
+            setAccountInfo(filteredUsers);
         }
-    };
+    } catch (err) {
+        console.log(err.response?.data || err.message);
+        setAccountInfo([]);
+    }
+};
 
     const handleChangePage = (event, newPage) => {
         setPage(newPage);
