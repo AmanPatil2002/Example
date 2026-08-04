@@ -1,0 +1,97 @@
+
+
+import CssBaseline from '@mui/material/CssBaseline';
+import {
+    Box,
+    Container,
+    Grid,
+    TextField,
+    Typography,
+} from "@mui/material";
+
+// import { useState, useEffect } from 'react';
+// import axios from "axios";
+// const API_URL = import.meta.env.VITE_API_URL;
+
+const SectionTitle = ({ title }) => (
+    <Typography
+        variant="h5"
+        sx={{
+            mt: 4,
+            mb: 2,
+            color: "#c2185b",
+            fontWeight: "bold",
+        }}
+    >
+        {title}
+    </Typography>
+);
+
+function Account() {
+
+    const account = [
+        {
+            UserID: 1,
+            UserName: "Aman"
+        },
+    ]
+
+
+
+    return (
+        <div>
+            <CssBaseline enableColorScheme />
+            <Container maxWidth="lg" sx={{ py: 4 }} >
+                <Typography
+                    variant="h3"
+                    align="center"
+                    fontWeight="bold"
+                    color="error"
+                >
+                    Account
+                </Typography>
+                {account.map((info) => (
+                    <Box key={info.UserID}>
+                        <SectionTitle title="User Information" />
+                        <Grid container spacing={2}>
+
+                            <Grid item xs={12} md={6} sx={{ width: '50%', marginLeft: 30 }}>
+                                <Grid >
+                                        <TextField
+                                            id="standard-read-only-input"
+                                            label="Username"
+                                            defaultValue="Name"
+                                            variant="standard"
+                                            slotProps={{
+                                                input: {
+                                                    readOnly: true,
+                                                },
+                                            }}
+                                        />
+                                    
+                                </Grid>
+                                <Grid >
+                                        <TextField
+                                            id="standard-read-only-input"
+                                            label="Username"
+                                            defaultValue="Email"
+                                            variant="standard"
+                                            slotProps={{
+                                                input: {
+                                                    readOnly: true,
+                                                },
+                                            }}
+                                        />
+                                    
+                                </Grid>
+                            </Grid>
+                        </Grid>
+                    </Box>
+                ))}
+            </Container>
+
+        </div>
+    );
+}
+
+export default Account;
