@@ -1,0 +1,150 @@
+import CssBaseline from '@mui/material/CssBaseline';
+import {
+    Box,
+    Container,
+    Grid,
+    TextField,
+    Typography,
+    Avatar,
+    Divider,
+    Paper,
+} from "@mui/material";
+
+import { useState, useEffect } from 'react';
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+const SectionTitle = ({ title }) => (
+    <Typography
+        variant="h5"
+        sx={{
+            mt: 4,
+            mb: 2,
+            color: "primary.main",
+            fontWeight: "bold",
+        }}
+    >
+        {title}
+    </Typography>
+);
+
+function Account() {
+    const [accountInfo, setAccountInfo] = useState([])
+
+    useEffect(() => {
+        showAccount();
+    }, []);
+
+    const showAccount = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/auth/user`);
+            console.log("API Response:", res.data);
+            setAccountInfo(res.data);
+        } catch (err) {
+            console.log("Error details:", err.response?.data || err.message);
+        }
+    };
+
+
+
+
+    return (
+        <div>
+            <CssBaseline enableColorScheme />
+            <Container maxWidth="lg" sx={{ py: 4 }}>
+                <Box display="flex" justifyContent="center" alignItems="center" mb={4}>
+                    <Typography
+                        variant="h3"
+                        fontWeight="bold"
+                        color="primary"
+
+                    >
+                        Account Information
+                    </Typography>
+                </Box>
+
+                {accountInfo && (
+                    <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+                        {/* Profile Header */}
+                        <Box display="flex" alignItems="center" mb={4} key={accountInfo.UserID}>
+                            <Avatar
+                                sx={{
+                                    width: 100,
+                                    height: 100,
+                                    bgcolor: 'primary.main',
+                                    fontSize: 40,
+                                    mr: 3
+                                }}
+                            >
+                                {accountInfo.UserName?.charAt(0)?.toUpperCase() || 'U'}
+                            </Avatar>
+
+                            <br />
+                        </Box>
+
+                        <Divider sx={{ mb: 4 }} />
+
+                        {/* User Information Section */}
+                        <SectionTitle title="User Information" />
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={6} sx={{ width: '40%' }}>
+                                <TextField
+                                    fullWidth
+                                    label="Username"
+                                    value={accountInfo.UserName}
+                                    variant="outlined"
+                                    InputProps={{
+                                        readOnly: true,
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6} sx={{ width: '40%' }}>
+                                <TextField
+                                    fullWidth
+                                    label="Email"
+                                    value={accountInfo.UserEmail}
+                                    variant="outlined"
+                                    InputProps={{
+                                        readOnly: true,
+                                    }}
+                                />
+                            </Grid>
+                        </Grid>
+
+                        {/* Account Details Section */}
+                        <SectionTitle title="Account Details" />
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={6} sx={{ width: '40%' }}>
+                                <TextField
+                                    fullWidth
+                                    label="Role"
+                                    value={accountInfo.Role || 'User'}
+                                    variant="outlined"
+                                    InputProps={{
+                                        readOnly: true,
+                                    }}
+
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} md={6} sx={{ width: '40%' }}>
+                                <TextField
+                                    fullWidth
+                                    label="Account Status"
+                                    value='Active'
+                                    variant="outlined"
+                                    InputProps={{
+                                        readOnly: true,
+                                    }}
+                                />
+                            </Grid>
+                        </Grid>
+                    </Paper>
+                )}
+            </Container>
+        </div>
+    );
+}
+
+export default Account;
