@@ -1,346 +1,48 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-const API_URL = import.meta.env.VITE_API_URL;
-import {
-  Box,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  Paper,
-  Container,
-  Stack,
-} from "@mui/material";
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { styled } from '@mui/material/styles';
+const db = require("../config/database");
 
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
+const getStory = (req, res) => {
+  const sql = "SELECT * FROM stories";
 
-export default function Stories() {
-  const [couple, setCouple] = useState("");
-  const [city, setCity] = useState("");
-  const [date, setDate] = useState("");
-  const [image, setImage] = useState(null);
-  const [story, setStory] = useState("");
-  const [stories, setStories] = useState([]);
-
-  useEffect(() => {
-    showStory();
-  }, []);
-
-  const showStory = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/success/story`);
-      console.log("API Response:", res.data);
-      setStories(res.data);
-    } catch (err) {
-      console.log("Error details:", err.response?.data || err.message);
-    }
-  };
-
-  const addStory = async (e) => {
-    e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append('Couple', couple);
-      formData.append('City', city);
-      formData.append('Date', date);
-      formData.append('Story', story);
-      if (image) {
-        formData.append('Image', image);
-      }
-
-      const res = await axios.post(`${API_URL}/success/story`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+  db.query(sql, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Error",
+        error: err.message,
       });
-
-      // Add the new story to the existing stories array
-      const newStory = {
-        StoryId: res.data.StoryId,
-        CoupleName: couple,
-        City: city,
-        Date: date,
-        Story: story,
-        Image: res.data.imageUrl || URL.createObjectURL(image),
-      };
-
-      setStories([...stories, newStory]);
-      
-      // Reset form fields
-      setCouple("");
-      setCity("");
-      setDate("");
-      setStory("");
-      setImage(null);
-    } catch (err) {
-      console.log("Error details:", err.response?.data || err.message);
     }
-  };
+    res.status(200).json(result);
+  });
+};
 
-  const handleImageChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]);
+
+const postStory = (req, res) => {
+  console.log( req.body);
+
+  const { Couple, City, Date, Image, Story } = req.body;
+
+  const sql =
+    "INSERT INTO stories (Couple, City, Date, Image, Story) VALUES (?, ?, ?, ?, ?)";
+
+  db.query(sql, [Couple, City, Date, Image, Story], (err, result) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          error: err.message,
+        });
+      }
+      res.status(201).json({
+        message: "Story added successfully",
+        StoryId: result.insertId,Couple,City,Date,Image,Story,
+      });
     }
-  };
-
-  return (
-    <Box sx={{ bgcolor: "#fafafa", py: { xs: 4, md: 6 } }}>
-      <Container maxWidth="lg">
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-            <FavoriteIcon sx={{ color: '#e91e63', fontSize: 32, mr: 1 }} />
-            <Typography
-              variant="h3"
-              fontWeight="bold"
-              color="#333"
-              sx={{ fontSize: { xs: '1.8rem', md: '2.5rem' } }}
-            >
-              Success Stories
-            </Typography>
-          </Box>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
-            Real couples who found their perfect match
-          </Typography>
-          <Box sx={{
-            width: 60,
-            height: 3,
-            backgroundColor: '#e91e63',
-            mx: 'auto',
-            mt: 2,
-            borderRadius: 2
-          }} />
-        </Box>
-
-        <Paper
-          elevation={0}
-          sx={{
-            mt: 6,
-            p: { xs: 3, md: 5 },
-            borderRadius: 3,
-            maxWidth: 800,
-            mx: "auto",
-            border: '1px solid #e0e0e0',
-            backgroundColor: 'white',
-          }}
-        >
-          <Typography
-            variant="h4"
-            textAlign="center"
-            fontWeight="bold"
-            color="#333"
-            mb={1}
-            sx={{ paddingBottom: 2, fontSize: { xs: '1.5rem', md: '2rem' } }}
-          >
-            Share Your Success Story
-          </Typography>
-
-          <Box component="form" onSubmit={addStory}>
-            <Grid container spacing={2.5}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Couple Name"
-                  name="couple"
-                  value={couple}
-                  onChange={(e) => setCouple(e.target.value)}
-                  placeholder="e.g., Priya & Rahul"
-                  variant="outlined"
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="City"
-                  name="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g., Mumbai"
-                  variant="outlined"
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  name="weddingDate"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  helperText="Enter Wedding Date"
-                  variant="outlined"
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <Button
-                  component="label"
-                  variant="contained"
-                  startIcon={<CloudUploadIcon />}
-                  sx={{ height: '56px' }}
-                >
-                  Upload Photo
-                  <VisuallyHiddenInput
-                    type="file"
-                    onChange={handleImageChange}
-                    accept="image/*"
-                  />
-                </Button>
-                {image && (
-                  <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                    Selected: {image.name}
-                  </Typography>
-                )}
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  multiline
-                  rows={4}
-                  fullWidth
-                  label="Your Story"
-                  name="story"
-                  value={story}
-                  onChange={(e) => setStory(e.target.value)}
-                  placeholder="Share your beautiful journey..."
-                  variant="outlined"
-                  required
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  size="large"
-                  variant="contained"
-                  type="submit"
-                  sx={{
-                    py: 1.5,
-                    backgroundColor: '#e91e63',
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    '&:hover': {
-                      backgroundColor: '#c2185b',
-                    }
-                  }}
-                >
-                  Submit Your Story
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-        </Paper>
-
-        <Grid container spacing={2} justifyContent="center" sx={{ paddingTop: 5 }}>
-          {stories.map((item) => (
-            <Grid item xs={12} sm={6} md={6} key={item.StoryId}>
-              <Card
-                sx={{
-                  height: '100%',
-                  borderRadius: 3,
-                  overflow: "hidden",
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                  cursor: 'pointer',
-                  transition: "all 0.3s ease",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
-                  },
-                }}
-              >
-                {item.Image && (
-                  <CardMedia
-                    component="img"
-                    image={item.Image}
-                    alt={item.CoupleName}
-                    sx={{ objectFit: 'cover', height: 300 }}
-                  />
-                )}
-
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h5" fontWeight="bold" gutterBottom>
-                    {item.CoupleName}
-                  </Typography>
-                  <Stack
-                    direction="row"
-                    spacing={3}
-                    sx={{ mb: 2 }}
-                    alignItems="center"
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <LocationOnIcon sx={{ fontSize: 18, color: '#e91e63' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {item.City}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <CalendarMonthIcon sx={{ fontSize: 18, color: '#e91e63' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {new Date(item.Date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </Typography>
-                    </Box>
-                  </Stack>
-
-                  <Box sx={{ position: 'relative', pl: 2 }}>
-                    <FormatQuoteIcon
-                      sx={{
-                        position: 'absolute',
-                        top: -5,
-                        left: -8,
-                        fontSize: 30,
-                        color: '#e91e63',
-                        opacity: 0.2,
-                        transform: 'rotate(180deg)'
-                      }}
-                    />
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontStyle: 'italic',
-                        color: '#555',
-                        lineHeight: 1.7
-                      }}
-                    >
-                      {item.Story}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </Box>
   );
-}
+};
+
+
+
+
+
+module.exports = {
+  getStory,
+  postStory,
+};
