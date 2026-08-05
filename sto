@@ -37,9 +37,8 @@ export default function Stories() {
   const [couple, setCouple] = useState("");
   const [city, setCity] = useState("");
   const [date, setDate] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState(null);
   const [story, setStory] = useState("");
-
   const [stories, setStories] = useState([]);
 
   useEffect(() => {
@@ -59,26 +58,53 @@ export default function Stories() {
   const addStory = async (e) => {
     e.preventDefault();
     try {
-      const NewStory = { Couple: couple, City: city, Date: date, Story: story, }
-      const res = await axios.post(`${API_URL}/success/story`);
-      NewStory.id = res.data.StoryId;
+      const formData = new FormData();
+      formData.append('Couple', couple);
+      formData.append('City', city);
+      formData.append('Date', date);
+      formData.append('Story', story);
+      if (image) {
+        formData.append('Image', image);
+      }
 
-      setStories([NewStory]);
+      const res = await axios.post(`${API_URL}/success/story`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Add the new story to the existing stories array
+      const newStory = {
+        StoryId: res.data.StoryId,
+        CoupleName: couple,
+        City: city,
+        Date: date,
+        Story: story,
+        Image: res.data.imageUrl || URL.createObjectURL(image),
+      };
+
+      setStories([...stories, newStory]);
+      
+      // Reset form fields
       setCouple("");
       setCity("");
       setDate("");
       setStory("");
-
+      setImage(null);
     } catch (err) {
       console.log("Error details:", err.response?.data || err.message);
     }
   };
 
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImage(e.target.files[0]);
+    }
+  };
 
   return (
     <Box sx={{ bgcolor: "#fafafa", py: { xs: 4, md: 6 } }}>
       <Container maxWidth="lg">
-
         <Box sx={{ textAlign: 'center', mb: 6 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
             <FavoriteIcon sx={{ color: '#e91e63', fontSize: 32, mr: 1 }} />
@@ -106,7 +132,6 @@ export default function Stories() {
 
         <Paper
           elevation={0}
-          onClick={addStory}
           sx={{
             mt: 6,
             p: { xs: 3, md: 5 },
@@ -123,13 +148,12 @@ export default function Stories() {
             fontWeight="bold"
             color="#333"
             mb={1}
-            sx={{ paddingBottom:2,fontSize: { xs: '1.5rem', md: '2rem' } }}
+            sx={{ paddingBottom: 2, fontSize: { xs: '1.5rem', md: '2rem' } }}
           >
             Share Your Success Story
           </Typography>
 
-
-          <Box component="form">
+          <Box component="form" onSubmit={addStory}>
             <Grid container spacing={2.5}>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -140,6 +164,7 @@ export default function Stories() {
                   onChange={(e) => setCouple(e.target.value)}
                   placeholder="e.g., Priya & Rahul"
                   variant="outlined"
+                  required
                 />
               </Grid>
 
@@ -152,10 +177,11 @@ export default function Stories() {
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g., Mumbai"
                   variant="outlined"
+                  required
                 />
               </Grid>
 
-              <Grid item xs={12} sm={6} sx={{ width: '30%' }}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   type="date"
@@ -167,25 +193,30 @@ export default function Stories() {
                   }}
                   helperText="Enter Wedding Date"
                   variant="outlined"
+                  required
                 />
               </Grid>
 
               <Grid item xs={12} sm={6}>
                 <Button
                   component="label"
-                  role={undefined}
                   variant="contained"
-                  tabIndex={-1}
                   startIcon={<CloudUploadIcon />}
+                  sx={{ height: '56px' }}
                 >
-                  Upload files
+                  Upload Photo
                   <VisuallyHiddenInput
                     type="file"
-                    onChange={(e) => console.log(e.target.files)}
-                    multiple
+                    onChange={handleImageChange}
+                    accept="image/*"
                   />
                 </Button>
-                </Grid>
+                {image && (
+                  <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                    Selected: {image.name}
+                  </Typography>
+                )}
+              </Grid>
 
               <Grid item xs={12}>
                 <TextField
@@ -198,6 +229,7 @@ export default function Stories() {
                   onChange={(e) => setStory(e.target.value)}
                   placeholder="Share your beautiful journey..."
                   variant="outlined"
+                  required
                 />
               </Grid>
 
@@ -243,12 +275,14 @@ export default function Stories() {
                   },
                 }}
               >
-                <CardMedia
-                  component="img"
-                  image={item.Image}
-                  alt={item.CoupleName}
-                  sx={{ objectFit: 'cover', height: 300 }}
-                />
+                {item.Image && (
+                  <CardMedia
+                    component="img"
+                    image={item.Image}
+                    alt={item.CoupleName}
+                    sx={{ objectFit: 'cover', height: 300 }}
+                  />
+                )}
 
                 <CardContent sx={{ p: 3 }}>
                   <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -269,7 +303,11 @@ export default function Stories() {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <CalendarMonthIcon sx={{ fontSize: 18, color: '#e91e63' }} />
                       <Typography variant="body2" color="text.secondary">
-                        {item.Date}
+                        {new Date(item.Date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
                       </Typography>
                     </Box>
                   </Stack>
