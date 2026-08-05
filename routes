@@ -1,0 +1,9 @@
+const express = require('express')
+const story = express.Router()
+ 
+const { getStory , postStory } = require('../controller/storiescontroller')
+
+story.get('/story', getStory)
+story.post('/story' ,postStory)
+
+module.exports = story;
