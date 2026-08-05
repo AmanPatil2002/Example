@@ -33,11 +33,9 @@ export default function DataTable() {
             ? res.data
             : res.data.users || [];
 
-        // If logged in as Admin, don't show any users
         if (role === "Admin") {
             setAccountInfo([]);
         } else {
-            // Show only users (remove admin records)
             const filteredUsers = userData.filter(
                 (user) => user.Role !== "Admin"
             );
@@ -88,7 +86,7 @@ export default function DataTable() {
                                     className="font-bold text-lg bg-gray-100 w-[15%]"
                                     align="center"
                                 >
-                                    ID
+                                   No
                                 </TableCell>
                                 <TableCell 
                                     className="font-bold text-lg bg-gray-100 w-[40%]"
@@ -106,7 +104,7 @@ export default function DataTable() {
                         </TableHead>
                         <TableBody>
                             {paginatedUsers.length > 0 ? (
-                                paginatedUsers.map((user) => (
+                                paginatedUsers.map((user, index) => (
                                     <TableRow 
                                         key={user.UserID}
                                         className="hover:bg-gray-50 transition-colors"
@@ -115,7 +113,7 @@ export default function DataTable() {
                                             align="center"
                                             className="py-4"
                                         >
-                                            {user.UserID}
+                                            {index + 1}
                                         </TableCell>
                                         <TableCell 
                                             align="center"
