@@ -9,20 +9,27 @@ import {
     TableHead,
     TableRow,
     Grid,
+    Avatar,
+    Divider,
+    Chip,
+    Card,
+    CardContent,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import PhoneIcon from '@mui/icons-material/Phone';
+import WorkIcon from '@mui/icons-material/Work';
+import SchoolIcon from '@mui/icons-material/School';
+import HomeIcon from '@mui/icons-material/Home';
+import CakeIcon from '@mui/icons-material/Cake';
+
 const API_URL = import.meta.env.VITE_API_URL;
-import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
-import CardMedia from '@mui/material/CardMedia';
-//import Button from '@mui/material/Button';
-import CardActionArea from '@mui/material/CardActionArea';
-import CardActions from '@mui/material/CardActions';
 
-export default function ProfileTable() {
-
-    const [profile, setProfile] = useState([])
+export default function AccountView() {
+    const [profile, setProfile] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         showProfile();
@@ -30,210 +37,165 @@ export default function ProfileTable() {
 
     const showProfile = async () => {
         try {
+            setLoading(true);
             const res = await axios.get(`${API_URL}/profile/profile`);
             console.log("API Response:", res.data);
             setProfile(res.data);
         } catch (err) {
             console.log("Error details:", err.response?.data || err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <Typography variant="h6">Loading...</Typography>
+            </Box>
+        );
+    }
+
     return (
-        <Box >
+        <Box sx={{ p: 3 }}>
             <Typography
                 variant="h4"
                 align="center"
                 fontWeight="bold"
                 gutterBottom
-                className="mb-6 text-gray-800"
+                sx={{ mb: 4, color: '#1a237e' }}
             >
-                Profile Table
+                Account Overview
             </Typography>
 
-            <Paper
-                sx={{ width: '100%' }}
-                elevation={2}
-                className="overflow-hidden rounded-lg "
-            >
-                <TableContainer className="max-h-[600px] w-[100%]">
-                    <Table stickyHeader>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell
-                                    className="font-bold text-lg bg-gray-100 w-[15%]"
-                                    align="center"
+            <Grid container spacing={3}>
+                {profile.map((user) => (
+                    <Grid item xs={12} sm={6} md={4} key={user.id || user.Email}>
+                        <Card 
+                            elevation={3}
+                            sx={{
+                                height: '100%',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                '&:hover': {
+                                    transform: 'translateY(-4px)',
+                                    boxShadow: 6,
+                                }
+                            }}
+                        >
+                            <CardContent>
+                                {/* Profile Header */}
+                                <Box 
+                                    display="flex" 
+                                    flexDirection="column" 
+                                    alignItems="center"
+                                    sx={{ mb: 2 }}
                                 >
-                                    Status
-                                </TableCell>
+                                    <Avatar
+                                        src={user.Image}
+                                        alt={user.Name}
+                                        sx={{ 
+                                            width: 100, 
+                                            height: 100, 
+                                            mb: 2,
+                                            border: '3px solid #1976d2'
+                                        }}
+                                    >
+                                        {!user.Image && <PersonIcon sx={{ fontSize: 60 }} />}
+                                    </Avatar>
+                                    
+                                    <Typography variant="h6" fontWeight="bold">
+                                        {user.Name}
+                                    </Typography>
+                                    
+                                    <Chip
+                                        label={user.Status || "Active"}
+                                        size="small"
+                                        color={user.Status === "Active" ? "success" : "default"}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </Box>
 
-                                <TableCell
-                                    className="font-bold text-lg bg-gray-100 w-[15%]"
-                                    align="center"
-                                >
-                                    User Information
-                                </TableCell>
-                                <TableCell
-                                    className="font-bold text-lg bg-gray-100 w-[20%]"
-                                    align="center"
-                                >
-                                    Education / Employment
-                                </TableCell>
-                                <TableCell
-                                    className="font-bold text-lg bg-gray-100 w-[15%]"
-                                    align="center"
-                                >
-                                    Hobbies / Details
-                                </TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {profile.map((cell) => (
-                                <TableRow
+                                <Divider sx={{ my: 2 }} />
 
-                                    className="hover:bg-gray-50 transition-colors"
-                                >
+                                {/* Basic Information */}
+                                <Box sx={{ mb: 1 }}>
+                                    <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+                                        <CakeIcon sx={{ mr: 1, color: '#1976d2', fontSize: 20 }} />
+                                        <Typography variant="body2">
+                                            <b>Age/Gender:</b> {user.Age} yrs, {user.Gender}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+                                        <EmailIcon sx={{ mr: 1, color: '#1976d2', fontSize: 20 }} />
+                                        <Typography variant="body2" noWrap>
+                                            <b>Email:</b> {user.Email}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+                                        <PhoneIcon sx={{ mr: 1, color: '#1976d2', fontSize: 20 }} />
+                                        <Typography variant="body2">
+                                            <b>Contact:</b> {user.Contact}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+                                        <WorkIcon sx={{ mr: 1, color: '#1976d2', fontSize: 20 }} />
+                                        <Typography variant="body2">
+                                            <b>Occupation:</b> {user.Occupation}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box display="flex" alignItems="center" sx={{ mb: 1 }}>
+                                        <SchoolIcon sx={{ mr: 1, color: '#1976d2', fontSize: 20 }} />
+                                        <Typography variant="body2">
+                                            <b>Education:</b> {user.Education}
+                                        </Typography>
+                                    </Box>
+                                    
+                                    <Box display="flex" alignItems="flex-start" sx={{ mb: 1 }}>
+                                        <HomeIcon sx={{ mr: 1, color: '#1976d2', fontSize: 20, mt: 0.3 }} />
+                                        <Typography variant="body2">
+                                            <b>Location:</b> {user.Address}
+                                        </Typography>
+                                    </Box>
+                                </Box>
 
-                                    <TableCell align="center" className="py-4 font-medium">
-                                        <Card
-                                            sx={{
-                                                width: "100%",
-                                                maxWidth: 220,
-                                                height: 300,
-                                                mx: "auto",
+                                <Divider sx={{ my: 2 }} />
+
+                                {/* Additional Info */}
+                                <Box>
+                                    <Typography variant="body2" color="textSecondary">
+                                        <b>Religion:</b> {user.Religion}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary">
+                                        <b>Language:</b> {user.Language}
+                                    </Typography>
+                                    <Typography variant="body2" color="textSecondary">
+                                        <b>Height:</b> {user.Height} ft
+                                    </Typography>
+                                    {user.Detail && (
+                                        <Typography 
+                                            variant="body2" 
+                                            color="textSecondary"
+                                            sx={{ 
+                                                mt: 1,
+                                                fontStyle: 'italic',
+                                                bgcolor: '#f5f5f5',
+                                                p: 1,
+                                                borderRadius: 1
                                             }}
                                         >
-                                            <CardActionArea>
-                                                <CardMedia
-                                                    component="img"
-                                                    sx={{
-                                                        height: 250,
-                                                        objectFit: "cover",
-                                                    }}
-                                                    image={cell.Image}
-                                                    alt={cell.Name}
-                                                />
-                                            </CardActionArea>
-
-                                            <CardActions
-                                                sx={{
-                                                    justifyContent: "center",
-                                                    padding: 1,
-                                                }}
-                                            >
-                                                <Chip
-                                                    label={cell.Status}
-                                                    variant="outlined"
-                                                />
-                                            </CardActions>
-                                        </Card>
-                                    </TableCell>
-
-                                    <TableCell
-                                        align="left"
-                                        className="py-4 text-gray-600"
-                                    >
-                                        <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Name : </b>{cell.Name}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Gender : </b>{cell.Gender}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Age : </b>{cell.Age}
-                                                </Typography>
-                                            </Grid>
-                                           
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Date : </b>{cell.DOB}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Religion : </b>{cell.Religion}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Mother Tongue : </b>{cell.Language}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Physically Challanged : </b>{cell.Physically}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Height : </b>{cell.Height} ft
-                                                </Typography>
-                                            </Grid>
-                                            
-                                        </Grid>
-                                    </TableCell>
-                                    <TableCell
-                                        align="left"
-                                        className="py-4 font-medium"
-                                    >
-                                        <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Education : </b>{cell.Education}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Occupation : </b>{cell.Occupation}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Company Name : </b>{cell.CompanyName}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Monthly Income : </b>{cell.MonthlyIncome}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Email : </b>{cell.Email}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Contact : </b>{cell.Contact}
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Address : </b>{cell.Address}
-                                                </Typography>
-                                            </Grid>
-                                        </Grid>
-                                    </TableCell>
-
-                                    <TableCell
-                                        align="left"
-                                        className=" font-medium"
-                                    >
-                                        <Typography variant="body1">
-                                            <b>{cell.Detail}</b>
+                                            "{user.Detail}"
                                         </Typography>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Paper>
+                                    )}
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
         </Box>
     );
 }
