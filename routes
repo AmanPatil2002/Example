@@ -1,9 +1,0 @@
-const express = require('express');
-const story = express.Router();
-const upload = require('../middleware/upload');
-const { getStory, postStory } = require('../controller/storycontroller');
-
-story.get('/story', getStory);
-story.post('/story', upload.single('Image'), postStory); // Added upload middleware
-
-module.exports = story;
