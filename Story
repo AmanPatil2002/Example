@@ -57,45 +57,47 @@ export default function Stories() {
 
 
   const addStory = async (e) => {
-    e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append('Couple', couple);
-      formData.append('City', city);
-      formData.append('Date', date);
-      formData.append('Story', story);
-      if (image) {
-        formData.append('Image', image);
-      }
-
-      const res = await axios.post(`${API_URL}/success/story`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      // Add the new story to the existing stories array
-      const newStory = {
-        StoryId: res.data.StoryId,
-        CoupleName: couple,
-        City: city,
-        Date: date,
-        Story: story,
-        Image: res.data.imageUrl || URL.createObjectURL(image),
-      };
-
-      setStories([...stories, newStory]);
-      
-      // Reset form fields
-      setCouple("");
-      setCity("");
-      setDate("");
-      setStory("");
-      setImage(null);
-    } catch (err) {
-      console.log("Error details:", err.response?.data || err.message);
+  e.preventDefault();
+  try {
+    const formData = new FormData();
+    formData.append('Couple', couple);
+    formData.append('City', city);
+    formData.append('Date', date);
+    formData.append('Story', story);
+    if (image) {
+      formData.append('Image', image);
     }
-  };
+
+    const res = await axios.post(`${API_URL}/success/story`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    // Add the new story with correct field names
+    const newStory = {
+      StoryId: res.data.StoryId,
+      Couple: res.data.Couple, // Changed from CoupleName to Couple
+      City: res.data.City,
+      Date: res.data.Date,
+      Story: res.data.Story,
+      Image: res.data.Image, // Backend now returns the full URL
+    };
+
+    setStories([...stories, newStory]);
+    
+    // Reset form fields
+    setCouple("");
+    setCity("");
+    setDate("");
+    setStory("");
+    setImage(null);
+    
+  } catch (err) {
+    console.log("Error details:", err.response?.data || err.message);
+    alert(err.response?.data?.error || "Failed to add story");
+  }
+};
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
