@@ -1,0 +1,144 @@
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  Container,
+  styled,
+  Grid,
+} from '@mui/material';
+import Typography from '@mui/material/Typography';
+import { useState, useEffect } from "react";
+import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardHeader from '@mui/material/CardHeader';
+import CardActionArea from '@mui/material/CardActionArea';
+import CardActions from '@mui/material/CardActions';
+import Avatar from '@mui/material/Avatar';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+
+const ReviewBackground = styled(Box)(({ theme }) => ({
+  background: 'rgb(255, 255, 255)',
+  minHeight: '60vh',
+  display: 'flex',
+  position: 'relative',
+  padding: 20,
+}));
+
+
+export default function ReviewView() {
+  const navigate = useNavigate();
+
+  const [review, setReview] = useState([])
+
+
+  const showReview = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/review`);
+      console.log("API Response:", res.data);
+      setReview(res.data);
+    } catch (err) {
+      console.log("Error details:", err.response?.data || err.message);
+    }
+  };
+
+  useEffect(() => {
+    showReview();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+
+      <div className="mb-6 flex items-center gap-4">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 shadow hover:bg-gray-50 transition"
+        >
+          <ArrowLeft size={18} />
+          Back
+        </button>
+
+        <h1 className="text-3xl font-bold text-gray-800">
+          All Reviews
+        </h1>
+      </div>
+      <ReviewBackground>
+        <Container maxWidth="xl" sx={{ display: 'flex' }}>
+
+          {review.map((card) => (
+            <Box sx={{ flexGrow: 1 }}>
+              <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+                <Grid size={{ xs: 6, sm: 6, md: 6 }}>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      borderRadius: 3,
+                      overflow: "hidden",
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                      cursor: 'pointer',
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
+                      },
+                    }}
+                  >
+                    <CardActionArea >
+                      <CardContent>
+                        <Box sx={{ position: 'relative', pl: 2 }}>
+                          <FormatQuoteIcon
+                            sx={{
+                              position: 'absolute',
+                              top: -5,
+                              left: -8,
+                              fontSize: 30,
+                              color: '#e91e63',
+                              opacity: 0.2,
+                              transform: 'rotate(180deg)'
+                            }}
+                          />
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontStyle: 'italic',
+                              color: '#555',
+                              lineHeight: 1.7
+                            }}
+                          >
+                            {card.Review}
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </CardActionArea>
+
+                    <CardActions sx={{ padding: 2 }}>
+                      <CardHeader
+                        sx={{ p: 0 }}
+                        avatar={
+                          <Avatar sx={{ bgcolor: "#F7A278" }}>
+                            {card.Name?.charAt(0).toUpperCase()}
+                          </Avatar>
+                        }
+                        title={<Typography
+                          variant="h5">
+                          {card.Name}
+                        </Typography>
+                        }
+                        subheader={<Typography
+                          variant="body2">
+                          {card.Email}
+                        </Typography>
+                        }
+                      />
+                    </CardActions>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Box>
+          ))}
+        </Container>
+      </ReviewBackground >
+    </div >
+  );
+}
