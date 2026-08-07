@@ -1,0 +1,120 @@
+import { useState } from "react";
+import axios from "axios";
+//import { useNavigate } from "react-router-dom";
+const API_URL = import.meta.env.VITE_API_URL;
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Avatar,
+  TextField,
+  Button,
+  Divider,
+} from "@mui/material";
+
+const Account = () => {
+
+  const [query, setQuery] = useState("");
+  const [answer, setAnswer] = useState("");
+  const Role = localStorage.getItem("role");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await axios.post(`${API_URL}/questions`, {
+        body: JSON.stringify({
+          name: localStorage.getItem("name"),
+          email: localStorage.getItem("email"),
+          query: query,
+        }),
+      });
+
+    } catch (error) {
+      console.log(error);
+      alert("Server Error");
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        py: 4,
+        transition: "0.3s",
+      }}
+    >
+      <Container maxWidth="md">
+        <Paper
+          sx={{
+            p: 4,
+            borderRadius: 3,
+
+            color: "inherit",
+          }}
+        >
+
+          <Box textAlign="center" mb={4}>
+            <Avatar
+              sx={{
+                width: 90,
+                height: 90,
+                mx: "auto",
+                mb: 2,
+                bgcolor: "primary.main",
+              }}
+            >
+              U
+            </Avatar>
+            <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
+              {Role}
+            </Typography>
+          </Box>
+
+          <Divider sx={{ mb: 4 }} />
+
+          <Typography variant="h6" gutterBottom>
+            Ask a Question
+          </Typography>
+
+          <form onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="Enter your query..."
+              multiline
+              rows={4}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+
+            <Button variant="contained" type="submit">
+              Submit
+            </Button>
+          </form>
+
+          {/* Answer Section */}
+          <Paper
+            elevation={2}
+            sx={{
+              mt: 4,
+              p: 3,
+              
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Answer
+            </Typography>
+
+            <Typography>
+              {answer || "The response will appear here."}
+            </Typography>
+          </Paper>
+        </Paper>
+      </Container>
+    </Box>
+  );
+};
+
+export default Account;
