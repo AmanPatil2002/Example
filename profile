@@ -13,9 +13,11 @@ import {
     CardMedia,
     Chip,
     Divider,
+    Alert,
+    Snackbar,
+    CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import NumberField from "../components/NumberField";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
@@ -25,13 +27,10 @@ import SchoolIcon from '@mui/icons-material/School';
 import WorkIcon from '@mui/icons-material/Work';
 import { useState, useEffect } from "react";
 import axios from "axios";
-const API_URL = import.meta.env.VITE_API_URL;
 import { useNavigate } from "react-router-dom";
 import InputAdornment from '@mui/material/InputAdornment';
 
-const Item = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(2),
-}));
+const API_URL = import.meta.env.VITE_API_URL;
 
 const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
@@ -83,12 +82,13 @@ const InfoRow = ({ icon, label, value }) => (
 
 export default function Profile() {
     const navigate = useNavigate();
+    const token = localStorage.getItem('token'); // Get token from localStorage
 
     const [gender, setGender] = useState("");
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [age, setAge] = useState("");
-    const [date, setDate] = useState(null);
+    const [date, setDate] = useState("");
     const [contact, setContact] = useState("");
     const [address, setAddress] = useState("");
     const [language, setLanguage] = useState("");
@@ -97,106 +97,138 @@ export default function Profile() {
     const [occupation, setOccupation] = useState("");
     const [company, setCompany] = useState("");
     const [income, setIncome] = useState("");
-    const [image, setImage] = useState("");
+    const [image, setImage] = useState(null); // Store File object, not URL
+    const [imagePreview, setImagePreview] = useState(""); // For preview only
     const [status, setStatus] = useState("");
     const [detail, setDetail] = useState("");
     const [physical, setPhysical] = useState("");
     const [height, setHeight] = useState("");
-    const [profiles, setProfiles] = useState([])
-    const [profile, setProfile] = useState(null);
-
+    const [profiles, setProfiles] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: '',
+        severity: 'success'
+    });
 
     useEffect(() => {
-        showUser();
+        // Check if user is authenticated
+        if (!token) {
+            navigate('/login');
+            return;
+        }
+        fetchProfiles();
     }, []);
 
-    const showUser = async () => {
+    const fetchProfiles = async () => {
         try {
-            const res = await axios.get(`${API_URL}/profile/profile`);
+            setLoading(true);
+            const res = await axios.get(`${API_URL}/api/profiles`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             console.log("API Response:", res.data);
             setProfiles(res.data);
-        } catch {
-            console.log("Error");
+        } catch (error) {
+            console.error("Error fetching profiles:", error);
+            if (error.response?.status === 401) {
+                // Token expired or invalid
+                localStorage.removeItem('token');
+                navigate('/login');
+            }
+            showSnackbar('Failed to fetch profiles', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validate required fields
+        if (!gender || !username || !email || !date) {
+            showSnackbar('Please fill in all required fields', 'warning');
+            return;
+        }
+
         try {
+            setLoading(true);
             
             const formData = new FormData();
-            formData.append('Gender', gender);
-            formData.append('Name', username);
-            formData.append('Email', email);
-            formData.append('Age', age);
-            formData.append('DOB', date);
-            formData.append('Contact', contact);
-            formData.append('Address', address);
-            formData.append('Language', language);
-            formData.append('Religion', religion);
-            formData.append('Education', education);
-            formData.append('Occupation', occupation);
-            formData.append('CompanyName', company);
-            formData.append('MonthlyIncome', income);
-            formData.append('Status', status);
-            formData.append('Detail', detail);
-            formData.append('Physically', physical);
-            formData.append('Height', height);
+            formData.append('gender', gender);
+            formData.append('name', username);
+            formData.append('email', email);
+            formData.append('age', age);
+            formData.append('dob', date);
+            formData.append('contact', contact);
+            formData.append('address', address);
+            formData.append('language', language);
+            formData.append('religion', religion);
+            formData.append('education', education);
+            formData.append('occupation', occupation);
+            formData.append('company', company);
+            formData.append('income', income);
+            formData.append('status', status);
+            formData.append('detail', detail);
+            formData.append('physical', physical);
+            formData.append('height', height);
+            
+            // Append image file if selected
             if (image) {
-                formData.append('Image', image);
+                formData.append('image', image);
             }
 
-            const res = await axios.post(`${API_URL}/profile/profile`, formData, {
+            const res = await axios.post(`${API_URL}/api/profiles`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${token}`
                 },
             });
 
-            const newProfile = {
-                RegisterID: res.data.RegisterID,
-                Gender: res.data.Gender,
-                Name:res.data.Name,
-                Email: res.data.Email,
-                Age: res.data.Age,
-                DOB:res.data.DOB,
-                Contact: res.data.Contact,
-                Address:res.data.Address,
-                Language: res.data.Language,
-                Religion: res.data.Religion,
-                Education:res.data.Education,
-                Occupation: res.data.Occupation,
-                CompanyName: res.data.CompanyName,
-                MonthlyIncome:res.data.MonthlyIncome,
-                Status: res.data.Status,
-                Detail: res.data.Detail,
-                Physically:res.data.Physically,
-                Height: res.data.Height,
-                Image: res.data.Image,
-            };
+            // Add new profile to list
+            setProfiles(prev => [...prev, res.data.profile || res.data]);
+            
+            // Reset form
+            handleReset();
+            
+            showSnackbar('Profile created successfully!', 'success');
+            
+            // Refresh profiles list
+            fetchProfiles();
+            
+        } catch (error) {
+            console.error("Error creating profile:", error);
+            const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to create profile';
+            showSnackbar(errorMessage, 'error');
+            
+            if (error.response?.status === 401) {
+                localStorage.removeItem('token');
+                navigate('/login');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
-            setProfile((prev) => [...prev, newProfile]);
-            setGender("");
-            setUsername("");
-            setEmail("");
-            setAge("");
-            setDate("");
-            setContact("");
-            setAddress("");
-            setLanguage("");
-            setReligion("");
-            setEducation("");
-            setOccupation("");
-            setCompany("");
-            setIncome("");
-            setImage("");
-            setStatus("");
-            setDetail("");
-            setPhysical("");
-            setHeight("");
-
-        } catch (err) {
-            console.log("Error details:", err.response?.data || err.message);
-            alert(err.response?.data?.error || "Failed to create profile");
+    const handleImageChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            // Validate file type
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showSnackbar('Please upload a valid image file (JPEG, PNG, GIF, WEBP)', 'error');
+                return;
+            }
+            
+            // Validate file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showSnackbar('Image size should be less than 5MB', 'error');
+                return;
+            }
+            
+            setImage(file); // Store the actual file for upload
+            setImagePreview(URL.createObjectURL(file)); // Create preview URL
         }
     };
 
@@ -205,7 +237,7 @@ export default function Profile() {
         setUsername("");
         setEmail("");
         setAge("");
-        setDate(null);
+        setDate("");
         setContact("");
         setAddress("");
         setLanguage("");
@@ -214,14 +246,25 @@ export default function Profile() {
         setOccupation("");
         setCompany("");
         setIncome("");
-        setImage("");
+        setImage(null);
+        setImagePreview("");
         setStatus("");
         setDetail("");
         setPhysical("");
         setHeight("");
-        setProfile(null);
     };
 
+    const showSnackbar = (message, severity = 'success') => {
+        setSnackbar({
+            open: true,
+            message,
+            severity
+        });
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar(prev => ({ ...prev, open: false }));
+    };
 
     return (
         <>
@@ -254,6 +297,7 @@ export default function Profile() {
                                         >
                                             <MenuItem value="Male">Male</MenuItem>
                                             <MenuItem value="Female">Female</MenuItem>
+                                            <MenuItem value="Other">Other</MenuItem>
                                         </TextField>
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6 }}>
@@ -303,17 +347,14 @@ export default function Profile() {
                                         />
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 3 }}>
-
                                         <TextField
                                             fullWidth
                                             label="Height (ft)"
                                             value={height}
                                             onChange={(e) => setHeight(e.target.value)}
                                             type="number"
-                                            slotProps={{
-                                                input: {
-                                                    startAdornment: <InputAdornment position="start">Ft</InputAdornment>,
-                                                },
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start">Ft</InputAdornment>,
                                             }}
                                         />
                                     </Grid>
@@ -326,6 +367,7 @@ export default function Profile() {
                                             onChange={(e) => setStatus(e.target.value)}
                                         >
                                             <MenuItem value="Single">Single</MenuItem>
+                                            <MenuItem value="Married">Married</MenuItem>
                                             <MenuItem value="Divorced">Divorced</MenuItem>
                                             <MenuItem value="Widowed">Widowed</MenuItem>
                                         </TextField>
@@ -343,6 +385,7 @@ export default function Profile() {
                                             <MenuItem value="Christian">Christian</MenuItem>
                                             <MenuItem value="Sikh">Sikh</MenuItem>
                                             <MenuItem value="Jain">Jain</MenuItem>
+                                            <MenuItem value="Buddhist">Buddhist</MenuItem>
                                             <MenuItem value="Other">Other</MenuItem>
                                         </TextField>
                                     </Grid>
@@ -359,6 +402,10 @@ export default function Profile() {
                                             <MenuItem value="Gujarati">Gujarati</MenuItem>
                                             <MenuItem value="Tamil">Tamil</MenuItem>
                                             <MenuItem value="Telugu">Telugu</MenuItem>
+                                            <MenuItem value="Bengali">Bengali</MenuItem>
+                                            <MenuItem value="Kannada">Kannada</MenuItem>
+                                            <MenuItem value="Malayalam">Malayalam</MenuItem>
+                                            <MenuItem value="Other">Other</MenuItem>
                                         </TextField>
                                     </Grid>
                                 </Grid>
@@ -419,7 +466,8 @@ export default function Profile() {
                                             value={income}
                                             onChange={(e) => setIncome(e.target.value)}
                                             InputProps={{
-                                                inputProps: { min: 10000, max: 1000000 }
+                                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                                                inputProps: { min: 0 }
                                             }}
                                         />
                                     </Grid>
@@ -431,7 +479,7 @@ export default function Profile() {
                                         <TextField
                                             fullWidth
                                             multiline
-                                            rows={2}
+                                            rows={3}
                                             label="Write about yourself"
                                             placeholder="Describe yourself, hobbies, values, and expectations..."
                                             value={detail}
@@ -439,9 +487,10 @@ export default function Profile() {
                                         />
                                     </Grid>
                                 </Grid>
+
                                 <SectionTitle title="Lifestyle" />
                                 <Grid container spacing={2}>
-                                    <Grid size={{ xs: 6, sm: 6 }}>
+                                    <Grid size={{ xs: 12, sm: 6 }}>
                                         <TextField
                                             select
                                             fullWidth
@@ -454,75 +503,77 @@ export default function Profile() {
                                         </TextField>
                                     </Grid>
                                 </Grid>
-                                <Grid container spacing={2} sx={{ paddingTop: 2 }}>
-                                    <Grid size={{ xs: 6, sm: 6 }}>
+
+                                <SectionTitle title="Profile Image" />
+                                <Grid container spacing={2} alignItems="center">
+                                    <Grid size={{ xs: 12, sm: 6 }}>
                                         <Button
                                             component="label"
                                             variant="contained"
-                                            tabIndex={-1}
                                             startIcon={<CloudUploadIcon />}
                                             fullWidth
                                             sx={{ height: 50 }}
                                         >
-                                            Upload Images
+                                            Upload Image
                                             <VisuallyHiddenInput
                                                 type="file"
-                                                onChange={(event) => {
-                                                    const file = event.target.files[0];
-                                                    if (file) {
-                                                        setImage(URL.createObjectURL(file));
-                                                    }
-                                                }}
-                                                multiple
+                                                accept="image/*"
+                                                onChange={handleImageChange}
                                             />
                                         </Button>
                                     </Grid>
-
-                                    <Grid size={{ xs: 6, sm: 6 }} sx={{ marginTop: -9 }}>
-                                        {image ? (
+                                    <Grid size={{ xs: 12, sm: 6 }}>
+                                        {imagePreview ? (
                                             <CardMedia
                                                 component="img"
-                                                image={image}
-                                                alt={profiles.Name || 'Not provided'}
+                                                image={imagePreview}
+                                                alt="Profile preview"
                                                 sx={{
                                                     width: '100%',
                                                     height: 200,
-
-                                                    margin: '0 auto',
                                                     objectFit: 'cover',
+                                                    borderRadius: 2,
                                                     border: '3px solid #c2185b'
                                                 }}
                                             />
                                         ) : (
-                                            <CardMedia
-                                                component="label"
-                                                
+                                            <Box
                                                 sx={{
                                                     width: '100%',
                                                     height: 200,
-                                                    margin: '0 auto',
-                                                    objectFit: 'cover',
-                                                    border: '3px solid #c2185b'
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    border: '2px dashed #ccc',
+                                                    borderRadius: 2,
+                                                    bgcolor: '#f5f5f5'
                                                 }}
-                                            />
+                                            >
+                                                <Typography color="text.secondary">
+                                                    Image Preview
+                                                </Typography>
+                                            </Box>
                                         )}
                                     </Grid>
                                 </Grid>
 
-                                <Box textAlign="center" mt={4} sx={{ display: 'flex', gap: 2, justifyContent: 'center', paddingTop: 3 }}>
+                                <Box textAlign="center" mt={4} sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
                                     <Button
                                         variant="contained"
                                         size="large"
                                         color="error"
                                         type="submit"
+                                        disabled={loading}
+                                        startIcon={loading && <CircularProgress size={20} color="inherit" />}
                                     >
-                                        Submit Profile
+                                        {loading ? 'Submitting...' : 'Submit Profile'}
                                     </Button>
                                     <Button
                                         variant="outlined"
                                         size="large"
                                         color="secondary"
                                         onClick={handleReset}
+                                        disabled={loading}
                                     >
                                         Reset Form
                                     </Button>
@@ -544,137 +595,124 @@ export default function Profile() {
                                     Profile Preview
                                 </Typography>
                                 
-                                {profiles ? (
-                                    <>
-                                        <Box sx={{ textAlign: 'center', mb: 2 }}>
-                                            {/* {image && (
-                                                <CardMedia
-                                                    component="img"
-                                                    image={image || "https://e7.pngegg.com/pngimages/416/62/png-clipart-anonymous-person-login-google-account-computer-icons-user-activity-miscellaneous-computer.png"}
-                                                    alt={profiles.Name || 'Not provided'}
-                                                    sx={{
-                                                        width: 150,
-                                                        height: 150,
-                                                        borderRadius: '50%',
-                                                        margin: '0 auto',
-                                                        objectFit: 'cover',
-                                                        border: '3px solid #c2185b'
-                                                    }}
-                                                />
-                                            )} */}
-                                            <Typography variant="h6" fontWeight="bold" mt={2}>
-                                                {profiles.Name || 'Not provided'}
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 1 }}>
-                                                <Chip label={profiles.Gender || 'Not provided'} size="small" color="primary" />
-                                                <Chip label={`${profiles.Age || 'Not provided'} years`} size="small" color="secondary" />
-                                                {profiles.Status && <Chip label={profiles.Status || 'Not provided'} size="small" color="info" />}
-                                            </Box>
+                                {/* Show preview of current form data */}
+                                <Box sx={{ textAlign: 'center', mb: 2 }}>
+                                    {imagePreview ? (
+                                        <CardMedia
+                                            component="img"
+                                            image={imagePreview}
+                                            alt={username || 'Profile'}
+                                            sx={{
+                                                width: 150,
+                                                height: 150,
+                                                borderRadius: '50%',
+                                                margin: '0 auto',
+                                                objectFit: 'cover',
+                                                border: '3px solid #c2185b'
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box
+                                            sx={{
+                                                width: 150,
+                                                height: 150,
+                                                borderRadius: '50%',
+                                                margin: '0 auto',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                border: '3px solid #c2185b',
+                                                bgcolor: '#f5f5f5'
+                                            }}
+                                        >
+                                            <PersonIcon sx={{ fontSize: 60, color: '#ccc' }} />
                                         </Box>
+                                    )}
+                                    <Typography variant="h6" fontWeight="bold" mt={2}>
+                                        {username || 'Your Name'}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 1, flexWrap: 'wrap' }}>
+                                        {gender && <Chip label={gender} size="small" color="primary" />}
+                                        {age && <Chip label={`${age} years`} size="small" color="secondary" />}
+                                        {status && <Chip label={status} size="small" color="info" />}
+                                    </Box>
+                                </Box>
 
-                                        <Divider sx={{ my: 2 }} />
+                                <Divider sx={{ my: 2 }} />
 
-                                        <InfoRow
-                                            icon={<EmailIcon />}
-                                            label="Email"
-                                            value={profiles.Email}
+                                <InfoRow icon={<EmailIcon />} label="Email" value={email} />
+                                <InfoRow icon={<PhoneIcon />} label="Contact" value={contact} />
+                                <InfoRow icon={<LocationOnIcon />} label="Address" value={address} />
+
+                                <Divider sx={{ my: 2 }} />
+
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 6 }}>
+                                        <Typography variant="caption" color="text.secondary">Date of Birth</Typography>
+                                        <Typography variant="body2">{date || 'Not provided'}</Typography>
+                                    </Grid>
+                                    <Grid size={{ xs: 6 }}>
+                                        <Typography variant="caption" color="text.secondary">Height</Typography>
+                                        <Typography variant="body2">{height ? `${height} ft` : 'Not provided'}</Typography>
+                                    </Grid>
+                                    <Grid size={{ xs: 6 }}>
+                                        <Typography variant="caption" color="text.secondary">Religion</Typography>
+                                        <Typography variant="body2">{religion || 'Not provided'}</Typography>
+                                    </Grid>
+                                    <Grid size={{ xs: 6 }}>
+                                        <Typography variant="caption" color="text.secondary">Mother Tongue</Typography>
+                                        <Typography variant="body2">{language || 'Not provided'}</Typography>
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ my: 2 }} />
+
+                                <InfoRow icon={<SchoolIcon />} label="Education" value={education} />
+                                <InfoRow icon={<WorkIcon />} label="Occupation" value={occupation} />
+
+                                <Grid container spacing={2} sx={{ mt: 1 }}>
+                                    <Grid size={{ xs: 6 }}>
+                                        <Typography variant="caption" color="text.secondary">Company</Typography>
+                                        <Typography variant="body2">{company || 'Not provided'}</Typography>
+                                    </Grid>
+                                    <Grid size={{ xs: 6 }}>
+                                        <Typography variant="caption" color="text.secondary">Monthly Income</Typography>
+                                        <Typography variant="body2">{income ? `₹${income}` : 'Not provided'}</Typography>
+                                    </Grid>
+                                </Grid>
+
+                                <Divider sx={{ my: 2 }} />
+
+                                <Typography variant="caption" color="text.secondary">About Me</Typography>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    {detail || 'No description provided'}
+                                </Typography>
+
+                                {physical && (
+                                    <Box sx={{ mt: 1 }}>
+                                        <Typography variant="caption" color="text.secondary">Physical Status</Typography>
+                                        <Chip
+                                            label={physical}
+                                            size="small"
+                                            color={physical === 'Yes' ? 'warning' : 'success'}
                                         />
-                                        <InfoRow
-                                            icon={<PhoneIcon />}
-                                            label="Contact"
-                                            value={profiles.Contact}
-                                        />
-                                        <InfoRow
-                                            icon={<LocationOnIcon />}
-                                            label="Address"
-                                            value={profiles.Address}
-                                        />
-
-                                        <Divider sx={{ my: 2 }} />
-
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" color="text.secondary">Date of Birth</Typography>
-                                                <Typography variant="body2">{profiles.DOB || 'Not provided'}</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" color="text.secondary">Height</Typography>
-                                                <Typography variant="body2">{profiles.Height || 'Not provided'}</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" color="text.secondary">Religion</Typography>
-                                                <Typography variant="body2">{profiles.Religion || 'Not provided'}</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" color="text.secondary">Mother Tongue</Typography>
-                                                <Typography variant="body2">{profiles.Language || 'Not provided'}</Typography>
-                                            </Grid>
-                                        </Grid>
-
-                                        <Divider sx={{ my: 2 }} />
-
-                                        <InfoRow
-                                            icon={<SchoolIcon />}
-                                            label="Education"
-                                            value={profiles.Education}
-                                        />
-                                        <InfoRow
-                                            icon={<WorkIcon />}
-                                            label="Occupation"
-                                            value={profiles.Occupation}
-                                        />
-
-                                        <Grid container spacing={2} sx={{ mt: 1 }}>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" color="text.secondary">Company</Typography>
-                                                <Typography variant="body2">{profiles.CompanyName || 'Not provided'}</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" color="text.secondary">Monthly Income</Typography>
-                                                <Typography variant="body2">{profiles.MonthlyIncome || 'Not provided'}</Typography>
-                                            </Grid>
-                                        </Grid>
-
-                                        <Divider sx={{ my: 2 }} />
-
-                                        <Typography variant="caption" color="text.secondary">About Me</Typography>
-                                        <Typography variant="body2" sx={{ mb: 1 }}>
-                                            {profiles.Detail || 'No description provided'}
-                                        </Typography>
-
-                                        {profiles.Physically && (
-                                            <Box sx={{ mt: 1 }}>
-                                                <Typography variant="caption" color="text.secondary">Physical Status</Typography>
-                                                <Chip
-                                                    label={profiles.Physically}
-                                                    size="small"
-                                                    color={profiles.Physically === 'Yes' ? 'warning' : 'success'}
-                                                />
-                                            </Box>
-                                        )}
-                                    </>
-                                ) : (
-                                    <Box
-                                        sx={{
-                                            textAlign: 'center',
-                                            py: 8,
-                                            color: 'text.secondary'
-                                        }}
-                                    >
-                                        <PersonIcon sx={{ fontSize: 80, mb: 2, opacity: 0.3 }} />
-                                        <Typography variant="h6" gutterBottom>
-                                            No Profile Data
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            Fill out the form and click "Submit Profile" to see the preview
-                                        </Typography>
                                     </Box>
                                 )}
-                                
                             </CardContent>
                         </DisplayCard>
                     </Grid>
                 </Grid>
+
+                <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={6000}
+                    onClose={handleCloseSnackbar}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                >
+                    <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+                        {snackbar.message}
+                    </Alert>
+                </Snackbar>
             </Container>
         </>
     );
