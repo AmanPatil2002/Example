@@ -1,0 +1,119 @@
+import Paper from '@mui/material/Paper';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import {
+    Box,
+    Typography,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Grid,
+} from "@mui/material";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+export default function QueryTable() {
+    const [review, setReview] = useState([])
+
+    useEffect(() => {
+        showReview();
+    }, []);
+
+    const showReview = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/query`);
+            console.log("API Response:", res.data);
+            setReview(res.data);
+        } catch (err) {
+            console.log("Error details:", err.response?.data || err.message);
+        }
+    };
+
+
+    return (
+        <Box className="p-6">
+            <Typography
+                variant="h4"
+                align="center"
+                fontWeight="bold"
+                gutterBottom
+                className="mb-6 text-gray-800"
+            >
+                Query Table
+            </Typography>
+
+            <Paper
+                elevation={3}
+                className="overflow-hidden rounded-lg"
+            >
+                <TableContainer className="max-h-[600px]">
+                    <Table stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell
+                                    className="font-bold text-lg bg-gray-100 w-[5%]"
+                                    align="center"
+                                >
+                                    No
+                                </TableCell>
+                                <TableCell
+                                    className="font-bold text-lg bg-gray-100 w-[15%]"
+                                    align="center"
+                                >
+                                    User
+                                </TableCell>
+                                <TableCell
+                                    className="font-bold text-lg bg-gray-100 w-[45%]"
+                                    align="center"
+                                >
+                                    Review
+                                </TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {review.map((user, index) => (
+                                <TableRow
+                                    key={user.ReviewID}
+                                    className="hover:bg-gray-50 transition-colors"
+                                >
+                                    <TableCell
+                                        align="center"
+                                        className="py-4"
+                                    >
+                                        {index + 1}
+                                    </TableCell>
+                                    <TableCell
+                                        align="left"
+                                        className="py-4 font-medium"
+                                    >
+                                       <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
+                                            <Grid size={12}>
+                                                <Typography variant="body1">
+                                                    <b>Full Name : </b>{user.Name}
+                                                </Typography>
+                                            </Grid>
+                                            <Grid size={12}>
+                                                <Typography variant="body1">
+                                                    <b>Email : </b>{user.Email}
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
+                                    </TableCell>
+                                    <TableCell
+                                        align="center"
+                                        className="py-4 text-gray-600"
+                                    >
+                                        {user.Review}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+        </Box>
+    );
+}
