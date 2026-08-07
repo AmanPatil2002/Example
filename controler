@@ -1,0 +1,59 @@
+const db = require("../config/database");
+
+const getQuery = (req, res) => {
+  db.query("SELECT * FROM query", (err, result) => {
+    if (err) return res.status(500).json(err);
+    res.json(result);
+  });
+};
+
+const postQuery = (req, res) => {
+  const { name, email, query } = req.body;
+  const sql = "INSERT INTO query (Name, Email, Query) VALUES (?, ?, ?)";
+
+  db.query(sql, [name, email, query], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Failed to add",
+        error: err.message,
+      });
+    }
+    res.status(201).json({
+      message: "Added successfully",
+      QueryID: result.insertId,
+      data: {
+        name,
+        email,
+        query,
+      },
+    });
+  });
+};
+
+const putQuery = (req, res) => {
+  const { QueryID } = req.params;
+  const { solution } = req.body;
+
+  const sql = "UPDATE query SET Solution = ? WHERE QueryID = ?";
+
+  db.query(sql, [solution, QueryID], (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Failed to update solution",
+        error: err.message,
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: "Question not found",
+      });
+    }
+
+    res.json({
+      message: "Solution updated successfully",
+    });
+  });
+};
+
+module.exports = { getQuery, postQuery, putQuery };
