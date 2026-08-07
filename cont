@@ -12,74 +12,230 @@ const getProfile = (req, res) => {
             console.error("Error fetching profiles:", err);
             return res.status(500).json({ error: "Database error", details: err.message });
         }
+        
+        // Build image URLs for each profile
         const profiles = result.map(profile => ({
             ...profile,
             Image: profile.Image ? `http://localhost:${process.env.PORT || 5000}/${profile.Image}` : null
         }));
+        
         res.status(200).json(profiles);
-        res.json(result);
     });
 };
 
 const postProfile = (req, res) => {
     console.log("Request body:", req.body);
     console.log("Request file:", req.file);
-    const { gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, status, detail, physical, height } = req.body;
+    
+    const { 
+        gender, name, email, age, dob, contact, address, language, 
+        religion, education, occupation, company, income, status, 
+        detail, physical, height 
+    } = req.body;
+    
+    // Handle image upload
     const image = req.file ? req.file.path.replace(/\\/g, '/') : null;
-    const sql = `INSERT INTO profile (Gender, Name, Email, Age, DOB, Contact, Address, Language, Religion, Education, Occupation, CompanyName, MonthlyIncome, Image, Status, Detail, Physically, Height)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    const values = [gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height];
+    
+    const sql = `INSERT INTO profile (
+        Gender, Name, Email, Age, DOB, Contact, Address, Language, 
+        Religion, Education, Occupation, CompanyName, MonthlyIncome, 
+        Image, Status, Detail, Physically, Height
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    
+    const values = [
+        gender, name, email, age, dob, contact, address, language, 
+        religion, education, occupation, company, income, image, 
+        status, detail, physical, height
+    ];
+    
     db.query(sql, values, (err, result) => {
         if (err) {
             console.error("Database error:", err);
+            // Delete uploaded file if database insert fails
             if (req.file) {
                 fs.unlink(req.file.path, (unlinkErr) => {
                     if (unlinkErr) console.error("Error deleting file:", unlinkErr);
                 });
             }
             return res.status(500).json({
-                error: err.message,
+                error: "Failed to create profile",
+                details: err.message
             });
         }
-        const token = jwt.sign({ id: user.id, email: user.UserEmail,},
-              SECRET_KEY,
-              { expiresIn: "1h" }
-            );
-        const imageUrl = Image ? `http://localhost:${process.env.PORT || 5000}/${Image}` : null;
+        
+        // Generate JWT token for the new profile
+        const token = jwt.sign(
+            { 
+                id: result.insertId, 
+                email: email,
+                name: name
+            },
+            SECRET_KEY,
+            { expiresIn: "1h" }
+        );
+        
+        // Build image URL
+        const imageUrl = image ? `http://localhost:${process.env.PORT || 5000}/${image}` : null;
+        
         res.status(201).json({
-            message: "Added Successfully",
-            id: result.insertId,Image:imageUrl
+            message: "Profile created successfully",
+            token,
+            profile: {
+                id: result.insertId,
+                name,
+                email,
+                Image: imageUrl,
+                // Include other fields as needed
+            }
         });
     });
 };
 
 const updateProfile = (req, res) => {
     const { id } = req.params;
-    const { gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height } = req.body;
-    const sql = `UPDATE profile SET Gender=?, Name=?, Email=?, Age=?, DOB=?, Contact=?, Address=?, Language=?, Religion=?, Education=?, Occupation=?, CompanyName=?, MonthlyIncome=?, Image=?, Status=?, Detail=?, Physically=?, Height=?
-        WHERE RegisterID = ?
-    `;
-    const values = [gender, name, email, age, dob, contact, address, language, religion, education, occupation, company, income, image, status, detail, physical, height, id];
-    db.query(sql, values, (err, result) => {
+    
+    // First, get the existing profile to handle old image deletion
+    db.query("SELECT Image FROM profile WHERE RegisterID = ?", [id], (err, oldResult) => {
         if (err) {
-            console.error("Error updating profile:", err);
+            console.error("Error fetching old profile:", err);
             return res.status(500).json({ error: "Database error", details: err.message });
         }
-        res.json(result);
+        
+        if (oldResult.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+        
+        const { 
+            gender, name, email, age, dob, contact, address, language, 
+            religion, education, occupation, company, income, status, 
+            detail, physical, height 
+        } = req.body;
+        
+        // Handle new image upload
+        let image = req.file ? req.file.path.replace(/\\/g, '/') : null;
+        
+        // If no new image is uploaded, keep the old one
+        if (!image) {
+            image = oldResult[0].Image;
+        } else {
+            // Delete old image if it exists
+            if (oldResult[0].Image) {
+                const oldImagePath = path.join(__dirname, '..', oldResult[0].Image);
+                fs.unlink(oldImagePath, (unlinkErr) => {
+                    if (unlinkErr) console.error("Error deleting old image:", unlinkErr);
+                });
+            }
+        }
+        
+        const sql = `UPDATE profile SET 
+            Gender=?, Name=?, Email=?, Age=?, DOB=?, Contact=?, Address=?, 
+            Language=?, Religion=?, Education=?, Occupation=?, CompanyName=?, 
+            MonthlyIncome=?, Image=?, Status=?, Detail=?, Physically=?, Height=?
+            WHERE RegisterID = ?`;
+        
+        const values = [
+            gender, name, email, age, dob, contact, address, language, 
+            religion, education, occupation, company, income, image, 
+            status, detail, physical, height, id
+        ];
+        
+        db.query(sql, values, (err, result) => {
+            if (err) {
+                console.error("Error updating profile:", err);
+                // Delete newly uploaded file if update fails
+                if (req.file && image !== oldResult[0].Image) {
+                    fs.unlink(req.file.path, (unlinkErr) => {
+                        if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+                    });
+                }
+                return res.status(500).json({ 
+                    error: "Failed to update profile", 
+                    details: err.message 
+                });
+            }
+            
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Profile not found" });
+            }
+            
+            const imageUrl = image ? `http://localhost:${process.env.PORT || 5000}/${image}` : null;
+            
+            res.json({
+                message: "Profile updated successfully",
+                profile: {
+                    id: parseInt(id),
+                    Image: imageUrl,
+                    // Include other updated fields as needed
+                }
+            });
+        });
     });
 };
 
 const deleteProfile = (req, res) => {
     const { id } = req.params;
-    const sql = "DELETE FROM profile WHERE RegisterID = ?";
-    db.query(sql, [id], (err, result) => {
+    
+    // First, get the profile to delete associated image
+    db.query("SELECT Image FROM profile WHERE RegisterID = ?", [id], (err, result) => {
         if (err) {
-            console.error("Error deleting profile:", err);
+            console.error("Error fetching profile:", err);
             return res.status(500).json({ error: "Database error", details: err.message });
         }
-        res.json(result);
+        
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+        
+        const sql = "DELETE FROM profile WHERE RegisterID = ?";
+        db.query(sql, [id], (err, deleteResult) => {
+            if (err) {
+                console.error("Error deleting profile:", err);
+                return res.status(500).json({ error: "Database error", details: err.message });
+            }
+            
+            // Delete associated image file
+            if (result[0].Image) {
+                const imagePath = path.join(__dirname, '..', result[0].Image);
+                fs.unlink(imagePath, (unlinkErr) => {
+                    if (unlinkErr) console.error("Error deleting image:", unlinkErr);
+                });
+            }
+            
+            res.json({
+                message: "Profile deleted successfully",
+                deletedId: parseInt(id)
+            });
+        });
     });
 };
 
-module.exports = { getProfile, postProfile, updateProfile, deleteProfile };
+// Get single profile
+const getSingleProfile = (req, res) => {
+    const { id } = req.params;
+    
+    db.query("SELECT * FROM profile WHERE RegisterID = ?", [id], (err, result) => {
+        if (err) {
+            console.error("Error fetching profile:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
+        }
+        
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+        
+        const profile = {
+            ...result[0],
+            Image: result[0].Image ? `http://localhost:${process.env.PORT || 5000}/${result[0].Image}` : null
+        };
+        
+        res.status(200).json(profile);
+    });
+};
+
+module.exports = { 
+    getProfile, 
+    postProfile, 
+    updateProfile, 
+    deleteProfile,
+    getSingleProfile 
+};
