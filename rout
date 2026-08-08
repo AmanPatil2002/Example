@@ -3,12 +3,27 @@ const profile = express.Router()
 
 const upload = require('../middleware/upload');
 const authenticateToken = require('../middleware/authenticate')
-const {getProfile,postProfile,updateProfile,getSingleProfile} = require('../controller/profilecontroller')
+const {
+    getProfile, 
+    postProfile, 
+    updateProfile, 
+    getSingleProfile,
+    deleteProfile  // Import the delete function
+} = require('../controller/profilecontroller')
 
-profile.get('/profile',getProfile);
-profile.post('/profile', upload.single('Image'),authenticateToken,postProfile);
-profile.put('/profile/:id', upload.single('Image'),authenticateToken,updateProfile);
-profile.delete('/profile/:id',authenticateToken,getSingleProfile);
+// Get all profiles
+profile.get('/profile', getProfile);
 
+// Get single profile
+profile.get('/profile/:id', getSingleProfile);
+
+// Create profile
+profile.post('/profile', upload.single('Image'), authenticateToken, postProfile);
+
+// Update profile
+profile.put('/profile/:id', upload.single('Image'), authenticateToken, updateProfile);
+
+// Delete profile - Fixed route
+profile.delete('/profile/:id', authenticateToken, deleteProfile);
 
 module.exports = profile;
