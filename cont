@@ -1,0 +1,195 @@
+const db = require("../config/database");
+const path = require('path');
+const fs = require('fs');
+const jwt = require("jsonwebtoken");
+require('dotenv').config();
+
+const SECRET_KEY = process.env.SECRET_KEY;
+
+const getProfile = (req, res) => {
+    db.query("SELECT * FROM profile", (err, result) => {
+        if (err) {
+            console.error("Error fetching profiles:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
+        }
+        
+        const profiles = result.map(profile => ({
+            ...profile,
+            Image: profile.Image ? `http://localhost:${process.env.PORT || 5000}/${profile.Image}` : null
+        }));
+        
+        res.status(200).json(profiles);
+    });
+};
+
+const postProfile = (req, res) => {
+    console.log("Request body:", req.body);
+    console.log("Request file:", req.file);
+    
+    const { 
+        gender, name, email, age, dob, contact, address, language, 
+        religion, education, occupation, company, income, status, 
+        detail, physical, height 
+    } = req.body;
+    
+   
+    const image = req.file ? req.file.path.replace(/\\/g, '/') : null;
+    
+    const sql = `INSERT INTO profile (
+        Gender, Name, Email, Age, DOB, Contact, Address, Language, 
+        Religion, Education, Occupation, CompanyName, MonthlyIncome, 
+        Image, Status, Detail, Physically, Height
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    
+    const values = [
+        gender, name, email, age, dob, contact, address, language, 
+        religion, education, occupation, company, income, image, 
+        status, detail, physical, height
+    ];
+    
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error("Database error:", err);
+            
+            if (req.file) {
+                fs.unlink(req.file.path, (unlinkErr) => {
+                    if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+                });
+            }
+            return res.status(500).json({
+                error: "Failed to create profile",
+                details: err.message
+            });
+        }
+        const token = jwt.sign(
+            { 
+                id: result.insertId, 
+                email: email,
+                name: name
+            },
+            SECRET_KEY,
+            { expiresIn: "1h" }
+        );
+        
+  
+        const imageUrl = image ? `http://localhost:${process.env.PORT || 5000}/${image}` : null;
+        
+        res.status(201).json({
+            message: "Profile created successfully",
+            token,
+            profile: {
+                id: result.insertId,
+                name,
+                email,
+                Image: imageUrl,
+                
+            }
+        });
+    });
+};
+
+const updateProfile = (req, res) => {
+    const { id } = req.params;
+    
+    db.query("SELECT Image FROM profile WHERE RegisterID = ?", [id], (err, oldResult) => {
+        if (err) {
+            console.error("Error fetching old profile:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
+        }
+        
+        if (oldResult.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+        
+        const { 
+            gender, name, email, age, dob, contact, address, language, 
+            religion, education, occupation, company, income, status, 
+            detail, physical, height 
+        } = req.body;
+        
+       
+        let image = req.file ? req.file.path.replace(/\\/g, '/') : null;
+        
+        
+        if (!image) {
+            image = oldResult[0].Image;
+        } else {
+            
+            if (oldResult[0].Image) {
+                const oldImagePath = path.join(__dirname, '..', oldResult[0].Image);
+                fs.unlink(oldImagePath, (unlinkErr) => {
+                    if (unlinkErr) console.error("Error deleting old image:", unlinkErr);
+                });
+            }
+        }
+        
+        const sql = `UPDATE profile SET 
+            Gender=?, Name=?, Email=?, Age=?, DOB=?, Contact=?, Address=?, 
+            Language=?, Religion=?, Education=?, Occupation=?, CompanyName=?, 
+            MonthlyIncome=?, Image=?, Status=?, Detail=?, Physically=?, Height=?
+            WHERE RegisterID = ?`;
+        
+        const values = [
+            gender, name, email, age, dob, contact, address, language, 
+            religion, education, occupation, company, income, image, 
+            status, detail, physical, height, id
+        ];
+        
+        db.query(sql, values, (err, result) => {
+            if (err) {
+                console.error("Error updating profile:", err);
+                
+                if (req.file && image !== oldResult[0].Image) {
+                    fs.unlink(req.file.path, (unlinkErr) => {
+                        if (unlinkErr) console.error("Error deleting file:", unlinkErr);
+                    });
+                }
+                return res.status(500).json({ 
+                    error: "Failed to update profile", 
+                    details: err.message 
+                });
+            }
+            
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Profile not found" });
+            }
+            
+            const imageUrl = image ? `http://localhost:${process.env.PORT || 5000}/${image}` : null;
+            
+            res.json({
+                message: "Profile updated successfully",
+                profile: {
+                    id: parseInt(id),
+                    Image: imageUrl,
+                    
+                }
+            });
+        });
+    });
+};
+
+const getSingleProfile = (req, res) => {
+    const { id } = req.params;
+    
+    db.query("SELECT * FROM profile WHERE RegisterID = ?", [id], (err, result) => {
+        if (err) {
+            console.error("Error fetching profile:", err);
+            return res.status(500).json({ error: "Database error", details: err.message });
+        } 
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+        const profile = {
+            ...result[0],
+            Image: result[0].Image ? `http://localhost:${process.env.PORT || 5000}/${result[0].Image}` : null
+        };
+        res.status(200).json(profile);
+    });
+};
+
+module.exports = { 
+    getProfile, 
+    postProfile, 
+    updateProfile, 
+    getSingleProfile 
+};
