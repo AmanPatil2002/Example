@@ -1,7 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-//import { useNavigate } from "react-router-dom";
-const API_URL = import.meta.env.VITE_API_URL;
 import {
   Container,
   Paper,
@@ -11,106 +9,367 @@ import {
   TextField,
   Button,
   Divider,
+  CircularProgress,
+  Alert,
+  Card,
+  CardContent,
+  Chip,
+  Grid,
+  IconButton,
+  Collapse,
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Close";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const Account = () => {
-
+  // Form state
+  const [name, setName] = useState(localStorage.getItem("name") || "");
+  const [email, setEmail] = useState(localStorage.getItem("email") || "");
   const [query, setQuery] = useState("");
-  const [answer, setAnswer] = useState("");
-  const Role = localStorage.getItem("role");
+  
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [queries, setQueries] = useState([]);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const Role = localStorage.getItem("role") || "User";
+  
+  // Temporary edit state
+  const [editName, setEditName] = useState(name);
+  const [editEmail, setEditEmail] = useState(email);
+
+  // Fetch all queries on component mount
+  useEffect(() => {
+    fetchQueries();
+  }, [email]); // Refetch when email changes
+
+  const fetchQueries = async () => {
+    setFetchLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/query`);
+      // Filter queries for current user
+      const userQueries = res.data.filter(q => q.Email === email);
+      setQueries(userQueries);
+    } catch (error) {
+      console.error("Error fetching queries:", error);
+      setError("Failed to load your queries");
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
+  const handleSaveProfile = () => {
+    setName(editName);
+    setEmail(editEmail);
+    localStorage.setItem("name", editName);
+    localStorage.setItem("email", editEmail);
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(name);
+    setEditEmail(email);
+    setIsEditing(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!name.trim() || !email.trim() || !query.trim()) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSuccess(false);
+
     try {
-      const res = await axios.post(`${API_URL}/questions`, {
-        body: JSON.stringify({
-          name: localStorage.getItem("name"),
-          email: localStorage.getItem("email"),
-          query: query,
-        }),
+      const res = await axios.post(`${API_URL}/api/query`, {
+        name: name,
+        email: email,
+        query: query,
       });
 
+      if (res.status === 201) {
+        setQuery("");
+        setSuccess(true);
+        fetchQueries();
+        setTimeout(() => setSuccess(false), 3000);
+      }
     } catch (error) {
-      console.log(error);
-      alert("Server Error");
+      console.error("Full error:", error);
+      
+      if (error.response) {
+        setError(`Server error: ${error.response.data?.message || error.response.statusText}`);
+      } else if (error.request) {
+        setError("Cannot connect to server. Please check if the backend is running.");
+      } else {
+        setError("Error submitting query. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        py: 4,
-        transition: "0.3s",
-      }}
-    >
+    <Box sx={{ minHeight: "100vh", py: 4, bgcolor: "grey.100" }}>
       <Container maxWidth="md">
-        <Paper
-          sx={{
-            p: 4,
-            borderRadius: 3,
-
-            color: "inherit",
-          }}
-        >
-
-          <Box textAlign="center" mb={4}>
+        {/* Profile & Query Form */}
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2, mb: 4 }}>
+          
+          {/* Profile Section */}
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 4 }}>
             <Avatar
               sx={{
                 width: 90,
                 height: 90,
-                mx: "auto",
                 mb: 2,
                 bgcolor: "primary.main",
+                fontSize: "2.5rem",
               }}
             >
-              U
+              {name ? name.charAt(0).toUpperCase() : "U"}
             </Avatar>
-            <Typography variant="h5" gutterBottom sx={{ textAlign: 'center' }}>
-              {Role}
-            </Typography>
+            
+            {!isEditing ? (
+              <Box sx={{ textAlign: "center" }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom>
+                  {name || "Your Name"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {email || "your@email.com"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Role: {Role}
+                </Typography>
+                <Button
+                  startIcon={<EditIcon />}
+                  onClick={() => setIsEditing(true)}
+                  sx={{ mt: 1 }}
+                  size="small"
+                >
+                  Edit Profile
+                </Button>
+              </Box>
+            ) : (
+              <Box sx={{ width: "100%", maxWidth: 400 }}>
+                <TextField
+                  fullWidth
+                  label="Name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  sx={{ mb: 2 }}
+                  size="small"
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  sx={{ mb: 2 }}
+                  size="small"
+                />
+                <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSaveProfile}
+                    size="small"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<CancelIcon />}
+                    onClick={handleCancelEdit}
+                    size="small"
+                  >
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </Box>
 
           <Divider sx={{ mb: 4 }} />
 
-          <Typography variant="h6" gutterBottom>
-            Ask a Question
+          {/* Success/Error Messages */}
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Query submitted successfully!
+            </Alert>
+          )}
+          
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Query Form with Name, Email, and Query fields */}
+          <Typography variant="h6" gutterBottom fontWeight="bold">
+            Ask a New Question
           </Typography>
 
-          <form onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Enter your query..."
-              multiline
-              rows={4}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              sx={{ mb: 2 }}
-            />
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Your Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  disabled={loading}
+                  placeholder="Enter your name"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Your Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                  placeholder="Enter your email"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Your Question"
+                  multiline
+                  rows={4}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  required
+                  disabled={loading}
+                  placeholder="Type your question here..."
+                />
+              </Grid>
+            </Grid>
 
-            <Button variant="contained" type="submit">
-              Submit
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={!name.trim() || !email.trim() || !query.trim() || loading}
+              startIcon={loading && <CircularProgress size={20} color="inherit" />}
+              sx={{ minWidth: 120, mt: 2 }}
+              size="large"
+            >
+              {loading ? "Submitting..." : "Submit Question"}
             </Button>
-          </form>
+          </Box>
+        </Paper>
 
-          {/* Answer Section */}
-          <Paper
-            elevation={2}
-            sx={{
-              mt: 4,
-              p: 3,
-              
-            }}
-          >
-            <Typography variant="h6" gutterBottom>
-              Answer
-            </Typography>
+        {/* Queries History Section */}
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+          <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
+            Your Questions & Answers
+          </Typography>
 
-            <Typography>
-              {answer || "The response will appear here."}
-            </Typography>
-          </Paper>
+          {fetchLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : queries.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography variant="body1" color="text.secondary">
+                You haven't asked any questions yet.
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={3}>
+              {queries.map((item, index) => (
+                <Grid item xs={12} key={item.QueryID || index}>
+                  <Card 
+                    elevation={2} 
+                    sx={{ 
+                      borderLeft: 4, 
+                      borderColor: item.Solution ? "success.main" : "warning.main",
+                      transition: "0.3s",
+                      "&:hover": {
+                        boxShadow: 6,
+                      }
+                    }}
+                  >
+                    <CardContent>
+                      {/* Question Header */}
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                          <Typography variant="subtitle2" color="primary" fontWeight="bold">
+                            Question #{item.QueryID}
+                          </Typography>
+                          <Chip 
+                            label={item.Solution ? "Answered" : "Pending"} 
+                            color={item.Solution ? "success" : "warning"}
+                            size="small"
+                          />
+                        </Box>
+                        
+                        {/* User Info */}
+                        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            By: {item.Name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.Email}
+                          </Typography>
+                        </Box>
+                        
+                        {/* Question */}
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {item.Query}
+                        </Typography>
+                      </Box>
+
+                      <Divider sx={{ my: 2 }} />
+
+                      {/* Answer Section */}
+                      <Box sx={{ 
+                        bgcolor: item.Solution ? "success.light" : "grey.100",
+                        p: 2,
+                        borderRadius: 1,
+                      }}>
+                        <Typography variant="subtitle2" gutterBottom color="text.secondary">
+                          Response:
+                        </Typography>
+                        {item.Solution ? (
+                          <Typography variant="body2" color="success.dark">
+                            {item.Solution}
+                          </Typography>
+                        ) : (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <CircularProgress size={16} color="warning" />
+                            <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                              Answer will be provided shortly. Our team is reviewing your question.
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Paper>
       </Container>
     </Box>
