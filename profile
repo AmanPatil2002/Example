@@ -10,11 +10,9 @@ import {
     Typography,
     Card,
     CardContent,
-    CardMedia,
+
     Chip,
     Divider,
-    Alert,
-    Snackbar,
     CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
@@ -83,7 +81,6 @@ const InfoRow = ({ icon, label, value }) => (
 export default function Profile() {
     const navigate = useNavigate();
 
-    // Form state
     const [gender, setGender] = useState("");
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -97,24 +94,19 @@ export default function Profile() {
     const [occupation, setOccupation] = useState("");
     const [company, setCompany] = useState("");
     const [income, setIncome] = useState("");
-    const [image, setImage] = useState(null); // Store file object
-    const [imagePreview, setImagePreview] = useState(""); // Store preview URL
+    const [image, setImage] = useState(null); 
+    const [imagePreview, setImagePreview] = useState(""); 
     const [status, setStatus] = useState("");
     const [detail, setDetail] = useState("");
     const [physical, setPhysical] = useState("");
     const [height, setHeight] = useState("");
 
-    // UI state
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [snackbar, setSnackbar] = useState({
-        open: false,
-        message: "",
-        severity: "success"
-    });
+    
     const [errors, setErrors] = useState({});
 
-    // Fetch existing profile on mount
+    
     useEffect(() => {
         fetchProfile();
     }, []);
@@ -127,14 +119,14 @@ export default function Profile() {
             const res = await axios.get(`${API_URL}/profile/profile`);
             console.log("API Response:", res.data);
             
-            // Find profile matching user's email
+    
             const userProfile = Array.isArray(res.data) 
                 ? res.data.find(p => p.Email === userEmail)
                 : res.data;
             
             if (userProfile) {
                 setProfile(userProfile);
-                // Populate form with existing data
+    
                 populateForm(userProfile);
             }
         } catch (err) {
@@ -187,22 +179,11 @@ export default function Profile() {
     const handleImageChange = (event) => {
         const file = event.target.files[0];
         if (file) {
-            // Validate file type
             if (!file.type.startsWith('image/')) {
-                setSnackbar({
-                    open: true,
-                    message: "Please upload an image file",
-                    severity: "error"
-                });
                 return;
             }
             // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                setSnackbar({
-                    open: true,
-                    message: "Image size should be less than 5MB",
-                    severity: "error"
-                });
                 return;
             }
             setImage(file);
@@ -214,11 +195,6 @@ export default function Profile() {
         e.preventDefault();
 
         if (!validateForm()) {
-            setSnackbar({
-                open: true,
-                message: "Please fix the form errors",
-                severity: "error"
-            });
             return;
         }
 
@@ -253,23 +229,12 @@ export default function Profile() {
             });
 
             setProfile(res.data);
-            setSnackbar({
-                open: true,
-                message: "Profile created/updated successfully!",
-                severity: "success"
-            });
-
-            // Update localStorage
+        
             localStorage.setItem("name", username);
             localStorage.setItem("email", email);
 
         } catch (err) {
             console.log("Error details:", err.response?.data || err.message);
-            setSnackbar({
-                open: true,
-                message: err.response?.data?.error || "Failed to create profile",
-                severity: "error"
-            });
         } finally {
             setLoading(false);
         }
@@ -299,9 +264,7 @@ export default function Profile() {
         setErrors({});
     };
 
-    const handleCloseSnackbar = () => {
-        setSnackbar({ ...snackbar, open: false });
-    };
+  
 
     return (
         <>
@@ -318,7 +281,7 @@ export default function Profile() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                    {/* Form Section */}
+                    
                     <Grid size={{ xs: 12, md: 7 }}>
                         <Paper elevation={3} sx={{ p: 3 }}>
                             <form onSubmit={handleSubmit}>
@@ -410,7 +373,6 @@ export default function Profile() {
                                             onChange={(e) => setStatus(e.target.value)}
                                         >
                                             <MenuItem value="Single">Single</MenuItem>
-                                            <MenuItem value="Married">Married</MenuItem>
                                             <MenuItem value="Divorced">Divorced</MenuItem>
                                             <MenuItem value="Widowed">Widowed</MenuItem>
                                         </TextField>
@@ -721,22 +683,7 @@ export default function Profile() {
                         </DisplayCard>
                     </Grid>
                 </Grid>
-
-                {/* Snackbar for notifications */}
-                <Snackbar
-                    open={snackbar.open}
-                    autoHideDuration={4000}
-                    onClose={handleCloseSnackbar}
-                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                >
-                    <Alert 
-                        onClose={handleCloseSnackbar} 
-                        severity={snackbar.severity}
-                        variant="filled"
-                    >
-                        {snackbar.message}
-                    </Alert>
-                </Snackbar>
+                
             </Container>
         </>
     );
