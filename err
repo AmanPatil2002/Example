@@ -1,0 +1,20 @@
+[{
+	"resource": "/d:/matrimonial/frontend/src/pages/Profile.jsx",
+	"owner": "eslint",
+	"code": {
+		"value": "react-hooks/immutability",
+		"target": {
+			"$mid": 1,
+			"path": "/reference/eslint-plugin-react-hooks/lints/immutability",
+			"scheme": "https",
+			"authority": "react.dev"
+		}
+	},
+	"severity": 8,
+	"message": "Error: Cannot access variable before it is declared\n\n`fetchProfile` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.\n\n  109 |     \n  110 |     useEffect(() => {\n> 111 |         fetchProfile();\n      |         ^^^^^^^^^^^^ `fetchProfile` accessed before it is declared\n  112 |     }, []);\n  113 |\n  114 |     const fetchProfile = async () => {\n\n  112 |     }, []);\n  113 |\n> 114 |     const fetchProfile = async () => {\n      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 115 |         const userEmail = localStorage.getItem(\"email\");\n      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 116 |         if (!userEmail) return;\n      …\n      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 134 |         }\n      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n> 135 |     };\n      | ^^^^^^^ `fetchProfile` is declared here\n  136 |\n  137 |     const populateForm = (profileData) => {\n  138 |         setGender(profileData.Gender || \"\");",
+	"source": "eslint",
+	"startLineNumber": 111,
+	"startColumn": 9,
+	"endLineNumber": 111,
+	"endColumn": 21
+}]
