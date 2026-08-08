@@ -10,10 +10,11 @@ import {
     Typography,
     Card,
     CardContent,
-
     Chip,
     Divider,
     CircularProgress,
+    Alert,
+    Snackbar,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -28,7 +29,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import InputAdornment from '@mui/material/InputAdornment';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
@@ -102,35 +103,65 @@ export default function Profile() {
     const [height, setHeight] = useState("");
 
     const [profile, setProfile] = useState(null);
+    const [profileId, setProfileId] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
     
     const [errors, setErrors] = useState({});
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    
+    // Get token from localStorage
+    const getToken = () => localStorage.getItem('token');
+
+    // Axios instance with default headers
+    const api = axios.create({
+        baseURL: API_URL,
+    });
+
+    // Add token to requests
+    api.interceptors.request.use((config) => {
+        const token = getToken();
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    });
+
     useEffect(() => {
         fetchProfile();
     }, []);
 
     const fetchProfile = async () => {
         const userEmail = localStorage.getItem("email");
-        if (!userEmail) return;
+        if (!userEmail) {
+            setFetching(false);
+            return;
+        }
 
         try {
-            const res = await axios.get(`${API_URL}/profile/profile`);
+            const res = await api.get('/profile/profile');
             console.log("API Response:", res.data);
             
-    
-            const userProfile = Array.isArray(res.data) 
-                ? res.data.find(p => p.Email === userEmail)
-                : res.data;
+            // Find user's profile from the array
+            const userProfile = res.data.find(p => p.Email === userEmail);
             
             if (userProfile) {
                 setProfile(userProfile);
-    
+                setProfileId(userProfile.RegisterID); // Store the profile ID for updates
                 populateForm(userProfile);
             }
         } catch (err) {
             console.log("Error fetching profile:", err);
+            if (err.response?.status === 401) {
+                setSnackbar({
+                    open: true,
+                    message: 'Please login to continue',
+                    severity: 'error'
+                });
+                setTimeout(() => navigate('/login'), 2000);
+            }
+        } finally {
+            setFetching(false);
         }
     };
 
@@ -152,8 +183,15 @@ export default function Profile() {
         setDetail(profileData.Detail || "");
         setPhysical(profileData.Physically || "");
         setHeight(profileData.Height || "");
+        
+        // FIX: Handle image URL correctly
         if (profileData.Image) {
-            setImagePreview(`${API_URL}/${profileData.Image}`);
+            // Check if the Image is already a full URL
+            if (profileData.Image.startsWith('http')) {
+                setImagePreview(profileData.Image);
+            } else {
+                setImagePreview(`${API_URL}/${profileData.Image}`);
+            }
         }
     };
 
@@ -169,7 +207,7 @@ export default function Profile() {
         }
         if (!date) newErrors.date = "Date of birth is required";
         if (contact && !/^\d{10}$/.test(contact)) {
-            newErrors.contact = "Invalid mobile number";
+            newErrors.contact = "Invalid mobile number (10 digits required)";
         }
 
         setErrors(newErrors);
@@ -180,10 +218,19 @@ export default function Profile() {
         const file = event.target.files[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
+                setSnackbar({
+                    open: true,
+                    message: 'Please select an image file',
+                    severity: 'error'
+                });
                 return;
             }
-            // Validate file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
+                setSnackbar({
+                    open: true,
+                    message: 'Image size should be less than 5MB',
+                    severity: 'error'
+                });
                 return;
             }
             setImage(file);
@@ -201,70 +248,119 @@ export default function Profile() {
         setLoading(true);
         try {
             const formData = new FormData();
-            formData.append('Gender', gender);
-            formData.append('Name', username);
-            formData.append('Email', email);
-            formData.append('Age', age);
-            formData.append('DOB', date);
-            formData.append('Contact', contact);
-            formData.append('Address', address);
-            formData.append('Language', language);
-            formData.append('Religion', religion);
-            formData.append('Education', education);
-            formData.append('Occupation', occupation);
-            formData.append('CompanyName', company);
-            formData.append('MonthlyIncome', income);
-            formData.append('Status', status);
-            formData.append('Detail', detail);
-            formData.append('Physically', physical);
-            formData.append('Height', height);
+            // FIX: Use exact field names that match your backend
+            formData.append('gender', gender);
+            formData.append('name', username);
+            formData.append('email', email);
+            formData.append('age', age);
+            formData.append('dob', date);
+            formData.append('contact', contact);
+            formData.append('address', address);
+            formData.append('language', language);
+            formData.append('religion', religion);
+            formData.append('education', education);
+            formData.append('occupation', occupation);
+            formData.append('company', company);
+            formData.append('income', income);
+            formData.append('status', status);
+            formData.append('detail', detail);
+            formData.append('physical', physical);
+            formData.append('height', height);
             if (image) {
                 formData.append('Image', image);
             }
 
-            const res = await axios.post(`${API_URL}/profile/profile`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            let res;
+            if (profileId) {
+                // Update existing profile
+                res = await api.put(`/profile/profile/${profileId}`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                setSnackbar({
+                    open: true,
+                    message: 'Profile updated successfully!',
+                    severity: 'success'
+                });
+            } else {
+                // Create new profile
+                res = await api.post('/profile/profile', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                setSnackbar({
+                    open: true,
+                    message: 'Profile created successfully!',
+                    severity: 'success'
+                });
+                
+                // Save token if returned
+                if (res.data.token) {
+                    localStorage.setItem('token', res.data.token);
+                }
+            }
 
-            setProfile(res.data);
-        
-            localStorage.setItem("name", username);
-            localStorage.setItem("email", email);
+            setProfile(res.data.profile || res.data);
+            
+            // Refresh profile data
+            fetchProfile();
 
         } catch (err) {
             console.log("Error details:", err.response?.data || err.message);
+            setSnackbar({
+                open: true,
+                message: err.response?.data?.error || 'Failed to save profile',
+                severity: 'error'
+            });
         } finally {
             setLoading(false);
         }
     };
 
     const handleReset = () => {
-        setGender("");
-        setUsername("");
-        setEmail("");
-        setAge("");
-        setDate("");
-        setContact("");
-        setAddress("");
-        setLanguage("");
-        setReligion("");
-        setEducation("");
-        setOccupation("");
-        setCompany("");
-        setIncome("");
-        setImage(null);
-        setImagePreview("");
-        setStatus("");
-        setDetail("");
-        setPhysical("");
-        setHeight("");
-        setProfile(null);
+        if (profile) {
+            populateForm(profile);
+        } else {
+            setGender("");
+            setUsername("");
+            setEmail("");
+            setAge("");
+            setDate("");
+            setContact("");
+            setAddress("");
+            setLanguage("");
+            setReligion("");
+            setEducation("");
+            setOccupation("");
+            setCompany("");
+            setIncome("");
+            setImage(null);
+            setImagePreview("");
+            setStatus("");
+            setDetail("");
+            setPhysical("");
+            setHeight("");
+            setProfile(null);
+        }
         setErrors({});
     };
 
-  
+    // FIX: Helper function to get correct image URL
+    const getImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        return `${API_URL}/${imagePath}`;
+    };
+
+    if (fetching) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
         <>
@@ -281,7 +377,7 @@ export default function Profile() {
                 </Typography>
 
                 <Grid container spacing={3}>
-                    
+                    {/* Form Section */}
                     <Grid size={{ xs: 12, md: 7 }}>
                         <Paper elevation={3} sx={{ p: 3 }}>
                             <form onSubmit={handleSubmit}>
@@ -587,7 +683,7 @@ export default function Profile() {
                                         <Box sx={{ textAlign: 'center', mb: 2 }}>
                                             {profile.Image && (
                                                 <img
-                                                    src={`${API_URL}/${profile.Image}`}
+                                                    src={getImageUrl(profile.Image)}
                                                     alt={profile.Name}
                                                     style={{
                                                         width: 150,
@@ -595,6 +691,9 @@ export default function Profile() {
                                                         borderRadius: '50%',
                                                         objectFit: 'cover',
                                                         border: '3px solid #c2185b'
+                                                    }}
+                                                    onError={(e) => {
+                                                        e.target.src = '/default-avatar.png'; // Fallback image
                                                     }}
                                                 />
                                             )}
@@ -683,7 +782,21 @@ export default function Profile() {
                         </DisplayCard>
                     </Grid>
                 </Grid>
-                
+
+                {/* Snackbar for notifications */}
+                <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={6000}
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                >
+                    <Alert 
+                        onClose={() => setSnackbar({ ...snackbar, open: false })} 
+                        severity={snackbar.severity}
+                        sx={{ width: '100%' }}
+                    >
+                        {snackbar.message}
+                    </Alert>
+                </Snackbar>
             </Container>
         </>
     );
