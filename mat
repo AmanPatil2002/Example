@@ -21,7 +21,6 @@ import {
     DialogActions,
     TextField,
     Skeleton,
-    Fab,
     InputAdornment,
     MenuItem,
     Select,
@@ -43,8 +42,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(3),
@@ -81,7 +79,6 @@ const LikeButton = styled(IconButton)(({ theme, isliked }) => ({
     zIndex: 1,
 }));
 
-
 export default function Match() {
     const navigate = useNavigate();
     const [profiles, setProfiles] = useState([]);
@@ -90,7 +87,7 @@ export default function Match() {
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [detailOpen, setDetailOpen] = useState(false);
     const [likedProfiles, setLikedProfiles] = useState(new Set());
-    
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState({
@@ -103,64 +100,41 @@ export default function Match() {
     });
     const [showFilters, setShowFilters] = useState(false);
 
-
-    const currentUserId = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+    // Get current user email to filter out their own profile
+    const currentUserEmail = localStorage.getItem('email');
 
     useEffect(() => {
         fetchProfiles();
-        
     }, []);
-
-   
 
     const fetchProfiles = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/profiles`);
-            const otherProfiles = res.data.filter(profile => profile._id !== currentUserId);
+            // FIX: Use the correct endpoint that matches your backend route
+            const res = await axios.get(`${API_URL}/profile/profile`);
+            console.log("Fetched profiles:", res.data);
+            
+            let allProfiles = res.data;
+            
+            // Ensure we have an array
+            if (!Array.isArray(allProfiles)) {
+                allProfiles = [allProfiles];
+            }
+            
+            // FIX: Filter out current user's profile using email (matching your backend field names)
+            const otherProfiles = currentUserEmail 
+                ? allProfiles.filter(profile => profile.Email !== currentUserEmail)
+                : allProfiles;
+            
             setProfiles(otherProfiles);
             setFilteredProfiles(otherProfiles);
         } catch (err) {
-            console.log('Error fetching profiles, using mock data:', err);
-            const mockProfiles = [
-                {
-                    _id: '1',
-                    name: 'Priya Sharma',
-                    age: 26,
-                    gender: 'Female',
-                    religion: 'Hindu',
-                    language: 'Hindi',
-                    status: 'Single',
-                    occupation: 'Software Engineer',
-                    education: 'B.Tech',
-                    height: '165',
-                    address: 'Mumbai, Maharashtra',
-                    income: '1200000',
-                    company: 'Google',
-                    detail: 'I am a fun-loving person who enjoys traveling and trying new cuisines. Looking for someone who shares similar interests.',
-                    image: 'profile1.jpg'
-                },
-                {
-                    _id: '2',
-                    name: 'Rahul Verma',
-                    age: 28,
-                    gender: 'Male',
-                    religion: 'Hindu',
-                    language: 'Hindi',
-                    status: 'Single',
-                    occupation: 'Doctor',
-                    education: 'MBBS, MD',
-                    height: '175',
-                    address: 'Delhi, NCR',
-                    income: '1800000',
-                    company: 'AIIMS',
-                    detail: 'A dedicated doctor who believes in work-life balance. I love reading and playing badminton.',
-                    image: 'profile2.jpg'
-                },
-            ];
-            const otherProfiles = mockProfiles.filter(profile => profile._id !== currentUserId);
-            setProfiles(otherProfiles);
-            setFilteredProfiles(otherProfiles);
+            console.log('Error fetching profiles:', err);
+            setSnackbar({
+                open: true,
+                message: 'Failed to fetch profiles. Please try again later.',
+                severity: 'error'
+            });
         } finally {
             setLoading(false);
         }
@@ -168,36 +142,34 @@ export default function Match() {
 
     const applyFilters = useCallback(() => {
         let filtered = [...profiles];
+        
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             filtered = filtered.filter(profile => 
-                profile.name?.toLowerCase().includes(term) ||
-                profile.occupation?.toLowerCase().includes(term) ||
-                profile.education?.toLowerCase().includes(term) ||
-                profile.address?.toLowerCase().includes(term)
+                profile.Name?.toLowerCase().includes(term) ||
+                profile.Occupation?.toLowerCase().includes(term) ||
+                profile.Education?.toLowerCase().includes(term) ||
+                profile.Address?.toLowerCase().includes(term)
             );
         }
 
         if (filters.gender) {
-            filtered = filtered.filter(profile => profile.gender === filters.gender);
+            filtered = filtered.filter(profile => profile.Gender === filters.gender);
         }
         if (filters.religion) {
-            filtered = filtered.filter(profile => profile.religion === filters.religion);
+            filtered = filtered.filter(profile => profile.Religion === filters.religion);
         }
-
         if (filters.language) {
-            filtered = filtered.filter(profile => profile.language === filters.language);
+            filtered = filtered.filter(profile => profile.Language === filters.language);
         }
-
         if (filters.minAge) {
-            filtered = filtered.filter(profile => profile.age >= parseInt(filters.minAge));
+            filtered = filtered.filter(profile => profile.Age >= parseInt(filters.minAge));
         }
         if (filters.maxAge) {
-            filtered = filtered.filter(profile => profile.age <= parseInt(filters.maxAge));
+            filtered = filtered.filter(profile => profile.Age <= parseInt(filters.maxAge));
         }
-
         if (filters.maritalStatus) {
-            filtered = filtered.filter(profile => profile.status === filters.maritalStatus);
+            filtered = filtered.filter(profile => profile.Status === filters.maritalStatus);
         }
 
         setFilteredProfiles(filtered);
@@ -219,7 +191,7 @@ export default function Match() {
             return newLikes;
         });
         
-        setSncakbar({
+        setSnackbar({
             open: true,
             message: likedProfiles.has(profileId) ? 'Removed from favorites' : 'Added to favorites! ❤️',
             severity: 'success'
@@ -250,6 +222,15 @@ export default function Match() {
         });
     };
 
+    // FIX: Helper function to get correct image URL
+    const getImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        // Remove any leading slash and ensure proper path
+        const cleanPath = imagePath.replace(/^\/+/, '');
+        return `${API_URL}/${cleanPath}`;
+    };
+
     const ProfileDetailDialog = () => (
         <Dialog 
             open={detailOpen} 
@@ -267,7 +248,7 @@ export default function Match() {
                         color: 'white'
                     }}>
                         <Typography variant="h5" fontWeight="bold">
-                            {selectedProfile.name}'s Profile
+                            {selectedProfile.Name}'s Profile
                         </Typography>
                         <IconButton onClick={() => setDetailOpen(false)} sx={{ color: 'white' }}>
                             <CloseIcon />
@@ -278,8 +259,8 @@ export default function Match() {
                             <Grid item xs={12} md={4}>
                                 <Box textAlign="center">
                                     <Avatar
-                                        src={selectedProfile.image ? `${API_URL}/uploads/${selectedProfile.image.split(',')[0]}` : undefined}
-                                        alt={selectedProfile.name}
+                                        src={getImageUrl(selectedProfile.Image)}
+                                        alt={selectedProfile.Name}
                                         sx={{ 
                                             width: 200, 
                                             height: 200, 
@@ -293,11 +274,11 @@ export default function Match() {
                                         <PersonIcon sx={{ fontSize: 100 }} />
                                     </Avatar>
                                     <Typography variant="h6" gutterBottom>
-                                        {selectedProfile.name}
+                                        {selectedProfile.Name}
                                     </Typography>
                                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
-                                        <Chip label={`${selectedProfile.age} years`} size="small" color="secondary" />
-                                        <Chip label={`${selectedProfile.height} cm`} size="small" color="primary" />
+                                        <Chip label={`${selectedProfile.Age} years`} size="small" color="secondary" />
+                                        <Chip label={`${selectedProfile.Height} ft`} size="small" color="primary" />
                                     </Box>
                                 </Box>
                             </Grid>
@@ -312,22 +293,32 @@ export default function Match() {
                                 </Typography>
                                 <Grid container spacing={2}>
                                     <Grid item xs={6}>
+                                        <Typography variant="body2" color="text.secondary">Gender</Typography>
+                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.Gender || 'Not specified'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
                                         <Typography variant="body2" color="text.secondary">Religion</Typography>
-                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.religion || 'Not specified'}</Typography>
+                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.Religion || 'Not specified'}</Typography>
                                     </Grid>
                                     <Grid item xs={6}>
                                         <Typography variant="body2" color="text.secondary">Mother Tongue</Typography>
-                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.language || 'Not specified'}</Typography>
+                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.Language || 'Not specified'}</Typography>
                                     </Grid>
                                     <Grid item xs={6}>
                                         <Typography variant="body2" color="text.secondary">Marital Status</Typography>
-                                        <Chip label={selectedProfile.status || 'Not specified'} size="small" />
+                                        <Chip label={selectedProfile.Status || 'Not specified'} size="small" />
                                     </Grid>
                                     <Grid item xs={6}>
                                         <Typography variant="body2" color="text.secondary">Location</Typography>
                                         <Typography variant="body1">
                                             <LocationOnIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                                            {selectedProfile.address || 'Not specified'}
+                                            {selectedProfile.Address || 'Not specified'}
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Typography variant="body2" color="text.secondary">Date of Birth</Typography>
+                                        <Typography variant="body1">
+                                            {selectedProfile.DOB ? new Date(selectedProfile.DOB).toLocaleDateString() : 'Not specified'}
                                         </Typography>
                                     </Grid>
                                 </Grid>
@@ -345,25 +336,25 @@ export default function Match() {
                                 <Grid container spacing={2}>
                                     <Grid item xs={6}>
                                         <Typography variant="body2" color="text.secondary">Education</Typography>
-                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.education || 'Not specified'}</Typography>
+                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.Education || 'Not specified'}</Typography>
                                     </Grid>
                                     <Grid item xs={6}>
                                         <Typography variant="body2" color="text.secondary">Occupation</Typography>
-                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.occupation || 'Not specified'}</Typography>
+                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.Occupation || 'Not specified'}</Typography>
                                     </Grid>
                                     <Grid item xs={6}>
                                         <Typography variant="body2" color="text.secondary">Company</Typography>
-                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.company || 'Not specified'}</Typography>
+                                        <Typography variant="body1" fontWeight="medium">{selectedProfile.CompanyName || 'Not specified'}</Typography>
                                     </Grid>
                                     <Grid item xs={6}>
-                                        <Typography variant="body2" color="text.secondary">Annual Income</Typography>
+                                        <Typography variant="body2" color="text.secondary">Monthly Income</Typography>
                                         <Typography variant="body1" fontWeight="medium">
-                                            {selectedProfile.income ? `₹${parseInt(selectedProfile.income).toLocaleString()}` : 'Not specified'}
+                                            {selectedProfile.MonthlyIncome ? `₹${parseInt(selectedProfile.MonthlyIncome).toLocaleString()}` : 'Not specified'}
                                         </Typography>
                                     </Grid>
                                 </Grid>
 
-                                {selectedProfile.detail && (
+                                {selectedProfile.Detail && (
                                     <>
                                         <Divider sx={{ my: 2 }} />
                                         <Typography variant="h6" gutterBottom sx={{ 
@@ -376,9 +367,22 @@ export default function Match() {
                                         </Typography>
                                         <Paper sx={{ p: 2, bgcolor: '#fdf2f8', borderRadius: 2 }}>
                                             <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.8 }}>
-                                                {selectedProfile.detail}
+                                                {selectedProfile.Detail}
                                             </Typography>
                                         </Paper>
+                                    </>
+                                )}
+
+                                {selectedProfile.Physically && (
+                                    <>
+                                        <Divider sx={{ my: 2 }} />
+                                        <Typography variant="body2" color="text.secondary">Physical Status</Typography>
+                                        <Chip 
+                                            label={selectedProfile.Physically === 'Yes' ? 'Physically Challenged' : 'Not Physically Challenged'} 
+                                            size="small"
+                                            color={selectedProfile.Physically === 'Yes' ? 'warning' : 'success'}
+                                            sx={{ mt: 1 }}
+                                        />
                                     </>
                                 )}
                             </Grid>
@@ -390,6 +394,10 @@ export default function Match() {
                             variant="contained"
                             sx={{
                                 background: 'linear-gradient(45deg, #c2185b 30%, #e91e63 90%)',
+                            }}
+                            onClick={() => {
+                                // Navigate to contact or send interest
+                                navigate('/contact');
                             }}
                         >
                             Send Interest
@@ -539,9 +547,7 @@ export default function Match() {
                                                     <MenuItem value="Gujarati">Gujarati</MenuItem>
                                                     <MenuItem value="Tamil">Tamil</MenuItem>
                                                     <MenuItem value="Telugu">Telugu</MenuItem>
-                                                    <MenuItem value="Bengali">Bengali</MenuItem>
-                                                    <MenuItem value="Kannada">Kannada</MenuItem>
-                                                    <MenuItem value="Malayalam">Malayalam</MenuItem>
+                                                    <MenuItem value="English">English</MenuItem>
                                                 </Select>
                                             </FormControl>
                                         </Grid>
@@ -625,14 +631,14 @@ export default function Match() {
                         ) : (
                             <Grid container spacing={3}>
                                 {filteredProfiles.map((profile) => (
-                                    <Grid item xs={12} sm={6} md={4} lg={3} key={profile._id}>
+                                    <Grid item xs={12} sm={6} md={4} lg={3} key={profile.RegisterID}>
                                         <ProfileCard onClick={() => handleProfileClick(profile)}>
                                             <LikeButton
-                                                isliked={likedProfiles.has(profile._id) ? 'true' : 'false'}
-                                                onClick={(e) => handleLike(profile._id, e)}
+                                                isliked={likedProfiles.has(profile.RegisterID) ? 'true' : 'false'}
+                                                onClick={(e) => handleLike(profile.RegisterID, e)}
                                                 size="small"
                                             >
-                                                {likedProfiles.has(profile._id) ? 
+                                                {likedProfiles.has(profile.RegisterID) ? 
                                                     <FavoriteIcon /> : 
                                                     <FavoriteBorderIcon />
                                                 }
@@ -641,7 +647,7 @@ export default function Match() {
                                                 component="div"
                                                 sx={{
                                                     height: 200,
-                                                    background: profile.gender === 'Female' 
+                                                    background: profile.Gender === 'Female' 
                                                         ? 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)'
                                                         : 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
                                                     display: 'flex',
@@ -650,8 +656,8 @@ export default function Match() {
                                                 }}
                                             >
                                                 <Avatar
-                                                    src={profile.image ? `${API_URL}/uploads/${profile.image.split(',')[0]}` : undefined}
-                                                    alt={profile.name}
+                                                    src={getImageUrl(profile.Image)}
+                                                    alt={profile.Name}
                                                     sx={{ 
                                                         width: 120, 
                                                         height: 120,
@@ -664,24 +670,24 @@ export default function Match() {
                                             </CardMedia>
                                             <CardContent>
                                                 <Typography variant="h6" gutterBottom sx={{ color: '#c2185b' }}>
-                                                    {profile.name}
+                                                    {profile.Name}
                                                 </Typography>
                                                 <Box sx={{ mb: 1 }}>
                                                     <Chip 
-                                                        label={`${profile.age} yrs`} 
+                                                        label={`${profile.Age} yrs`} 
                                                         size="small" 
                                                         color="secondary"
                                                         sx={{ mr: 1, mb: 1 }}
                                                     />
                                                     <Chip 
-                                                        label={profile.religion} 
+                                                        label={profile.Religion} 
                                                         size="small" 
                                                         variant="outlined"
                                                         color="primary"
                                                         sx={{ mr: 1, mb: 1 }}
                                                     />
                                                     <Chip 
-                                                        label={profile.status} 
+                                                        label={profile.Status} 
                                                         size="small" 
                                                         variant="outlined"
                                                         sx={{ mb: 1 }}
@@ -690,19 +696,19 @@ export default function Match() {
                                                 <Box sx={{ display: 'flex', alignItems: 'center', mt: 1, color: 'text.secondary' }}>
                                                     <WorkIcon fontSize="small" sx={{ mr: 0.5 }} />
                                                     <Typography variant="body2" noWrap>
-                                                        {profile.occupation || 'Not specified'}
+                                                        {profile.Occupation || 'Not specified'}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5, color: 'text.secondary' }}>
                                                     <SchoolIcon fontSize="small" sx={{ mr: 0.5 }} />
                                                     <Typography variant="body2" noWrap>
-                                                        {profile.education || 'Not specified'}
+                                                        {profile.Education || 'Not specified'}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5, color: 'text.secondary' }}>
                                                     <LocationOnIcon fontSize="small" sx={{ mr: 0.5 }} />
                                                     <Typography variant="body2" noWrap>
-                                                        {profile.address || 'Location not specified'}
+                                                        {profile.Address || 'Location not specified'}
                                                     </Typography>
                                                 </Box>
                                             </CardContent>
@@ -715,8 +721,23 @@ export default function Match() {
                 </Container>
             </Box>
 
+            {/* Profile Detail Dialog */}
+            <ProfileDetailDialog />
 
-            
+            {/* Snackbar for notifications */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+            >
+                <Alert 
+                    onClose={() => setSnackbar({ ...snackbar, open: false })} 
+                    severity={snackbar.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </>
     );
 }
