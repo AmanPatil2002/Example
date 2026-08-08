@@ -1,0 +1,360 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Avatar,
+  TextField,
+  Button,
+  Divider,
+  CircularProgress,
+  Card,
+  CardContent,
+  Chip,
+  Grid,
+} from "@mui/material";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const Account = () => {
+  const [name, setName] = useState(localStorage.getItem("name") || "");
+  const [email, setEmail] = useState(localStorage.getItem("email") || "");
+  const [query, setQuery] = useState("");
+  //for review
+  const [rname, setRname] = useState(localStorage.getItem("name") || "");
+  const [remail, setRemail] = useState(localStorage.getItem("email") || "");
+  const [review, setReview] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [queries, setQueries] = useState([]);
+  const [fetchLoading, setFetchLoading] = useState(true);
+
+  useEffect(() => {
+    fetchQueries();
+  }, [email]);
+
+  const fetchQueries = async () => {
+    setFetchLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/api/query`);
+      const userQueries = res.data.filter(q => q.Email === email);
+      setQueries(userQueries);
+    } catch (error) {
+      console.error("Error fetching queries:", error);
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!name.trim() || !email.trim() || !query.trim()) {
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await axios.post(`${API_URL}/api/query`, {
+        name: name,
+        email: email,
+        query: query,
+      });
+
+      if (res.status === 201) {
+        setQuery("");
+        fetchQueries();
+      }
+    } catch (error) {
+      console.error("Full error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReview = async (e) => {
+    e.preventDefault();
+
+    if (!name.trim() || !email.trim() || !review.trim()) {
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await axios.post(`${API_URL}/api/review`, {
+        name: name,
+        email: email,
+        review: review,
+      });
+
+      if (res.status === 201) {
+        setReview("");
+        fetchQueries();
+      }
+    } catch (error) {
+      console.error("Full error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={{ minHeight: "100vh", py: 4, bgcolor: "grey.100" }}>
+
+      <Container sx={{ width: "100%" }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2, mb: 4, }}>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 4 }}>
+            <Avatar
+              sx={{
+                width: 90,
+                height: 90,
+                mb: 2,
+                bgcolor: "primary.main",
+                fontSize: "2.5rem",
+              }}
+            >
+              {email ? email.charAt(0).toUpperCase() : "U"}
+            </Avatar>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="h5" fontWeight="bold" gutterBottom>
+                {name || "Your Name"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {email || "your@email.com"}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Divider sx={{ mb: 4 }} />
+
+          <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+            <Grid size={{ xs: 6, sm: 6, md: 6 }}>
+              <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ textAlign: 'center' }}>
+                Ask a New Question
+              </Typography>
+              <Box component="form" onSubmit={handleSubmit} noValidate>
+                <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+                  <Grid size={{ xs: 6, sm: 6, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Your Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      disabled={loading}
+                      placeholder="Enter your name"
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 6, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Your Email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                      placeholder="Enter your email"
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 12, md: 12 }}>
+                    <TextField
+                      fullWidth
+                      label="Your Question"
+                      multiline
+                      rows={4}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      required
+                      disabled={loading}
+                      placeholder="Type your question here..."
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 12, md: 12 }}>
+                    <Button
+                      variant="contained"
+                      type="submit"
+                      disabled={!name.trim() || !email.trim() || !query.trim() || loading}
+                      startIcon={loading && <CircularProgress size={20} color="inherit" />}
+                      sx={{ width: '100%', mt: 2 }}
+                      size="large"
+                    >
+                      {loading ? "Submitting..." : "Submit Question"}
+                    </Button>
+                  </Grid>
+                </Grid>
+
+
+              </Box>
+            </Grid>
+            <Grid size={{ xs: 6, sm: 6, md: 6 }}>
+              <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ textAlign: 'center' }}>
+                Review
+              </Typography>
+              <Box component="form" onSubmit={handleReview} noValidate>
+                <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+                  <Grid size={{ xs: 6, sm: 6, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Your Name"
+                      value={rname}
+                      onChange={(e) => setRname(e.target.value)}
+                      required
+                      disabled={loading}
+                      placeholder="Enter your name"
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 6, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Your Email"
+                      type="email"
+                      value={remail}
+                      onChange={(e) => setRemail(e.target.value)}
+                      required
+                      disabled={loading}
+                      placeholder="Enter your email"
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 12, md: 12 }}>
+                    <TextField
+                      fullWidth
+                      label="Your Review"
+                      multiline
+                      rows={4}
+                      value={review}
+                      onChange={(e) => setReview(e.target.value)}
+                      required
+                      disabled={loading}
+                      placeholder="Type your review here..."
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 12, md: 12 }}>
+                    <Button
+                      variant="contained"
+                      type="submit"
+                      disabled={!name.trim() || !email.trim() || !review.trim() || loading}
+                      startIcon={loading && <CircularProgress size={20} color="inherit" />}
+                      sx={{ width: '100%', mt: 2 }}
+                      size="large"
+                    >
+                      {loading ? "Submitting..." : "Submit review"}
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2, }}>
+          <Typography variant="h5" gutterBottom fontWeight="bold" sx={{ mb: 3 }}>
+            Your Questions & Answers
+          </Typography>
+
+          {fetchLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : queries.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography variant="body1" color="text.secondary">
+                You haven't asked any questions yet.
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+              {/* <Grid size={{ xs: 6, sm: 6, md: 6 }}> */}
+              {queries.map((item, index) => (
+                <Grid size={{ xs: 6, sm: 6, md: 6 }} key={item.QueryID || index}>
+                  <Card
+                    elevation={2}
+                    sx={{
+                      borderLeft: 4,
+                      width: '100%',
+                      borderColor: item.Solution ? "success.main" : "warning.main",
+                      transition: "0.3s",
+                      "&:hover": {
+                        boxShadow: 6,
+                      }
+                    }}
+                  >
+                    <CardContent>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                          <Typography variant="subtitle2" color="primary" fontWeight="bold">
+                            Question #{index + 1}
+                          </Typography>
+                          <Chip
+                            label={item.Solution ? "Answered" : "Pending"}
+                            color={item.Solution ? "success" : "warning"}
+                            size="small"
+                          />
+                        </Box>
+                        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            By: <b>{item.Name}</b>
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.Email}
+                          </Typography>
+                        </Box>
+
+
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {item.Query}
+                        </Typography>
+                      </Box>
+
+                      <Divider sx={{ my: 2 }} />
+
+
+                      <Box sx={{
+                        bgcolor: item.Solution ? "success.light" : "grey.100",
+                        p: 2,
+                        borderRadius: 1,
+                      }}>
+                        <Typography variant="subtitle2" gutterBottom color="text.secondary">
+                          Response:
+                        </Typography>
+                        {item.Solution ? (
+                          <Typography variant="body2" color="success.dark">
+                            {item.Solution}
+                          </Typography>
+                        ) : (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <CircularProgress size={16} color="warning" />
+                            <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                              Answer will be provided shortly. Our team is reviewing your question.
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Paper>
+      </Container>
+    </Box>
+  );
+};
+
+export default Account;
