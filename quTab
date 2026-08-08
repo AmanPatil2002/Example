@@ -11,27 +11,103 @@ import {
     TableHead,
     TableRow,
     Grid,
+    Button,
+    TextField,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Chip,
+    IconButton,
+    Alert,
+    Snackbar,
 } from "@mui/material";
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function QueryTable() {
-    const [review, setReview] = useState([])
+    const [queries, setQueries] = useState([]);
+    const [openDialog, setOpenDialog] = useState(false);
+    const [selectedQuery, setSelectedQuery] = useState(null);
+    const [solution, setSolution] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: "",
+        severity: "success"
+    });
 
     useEffect(() => {
-        showReview();
+        fetchQueries();
     }, []);
 
-    const showReview = async () => {
+    const fetchQueries = async () => {
         try {
-            const res = await axios.get(`${API_URL}/query`);
+            const res = await axios.get(`${API_URL}/api/query`);
             console.log("API Response:", res.data);
-            setReview(res.data);
+            setQueries(res.data);
         } catch (err) {
             console.log("Error details:", err.response?.data || err.message);
+            setSnackbar({
+                open: true,
+                message: "Failed to fetch queries",
+                severity: "error"
+            });
         }
     };
 
+    const handleOpenDialog = (query) => {
+        setSelectedQuery(query);
+        setSolution(query.Solution || "");
+    };
+
+    const handleCloseDialog = () => {
+        setOpenDialog(false);
+        setSelectedQuery(null);
+        setSolution("");
+    };
+
+    const handleSubmitSolution = async () => {
+        if (!solution.trim()) {
+            setSnackbar({
+                open: true,
+                message: "Please enter a solution",
+                severity: "warning"
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await axios.put(`${API_URL}/api/query/${selectedQuery.QueryID}`, {
+                solution: solution
+            });
+
+            setSnackbar({
+                open: true,
+                message: "Solution added successfully!",
+                severity: "success"
+            });
+            
+            handleCloseDialog();
+            fetchQueries(); // Refresh the table
+        } catch (err) {
+            console.log("Error:", err.response?.data || err.message);
+            setSnackbar({
+                open: true,
+                message: "Failed to add solution",
+                severity: "error"
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
 
     return (
         <Box className="p-6">
@@ -42,71 +118,101 @@ export default function QueryTable() {
                 gutterBottom
                 className="mb-6 text-gray-800"
             >
-                Query Table
+                Query Management
             </Typography>
 
-            <Paper
-                elevation={3}
-                className="overflow-hidden rounded-lg"
-            >
+
+            <Paper elevation={3} className="overflow-hidden rounded-lg">
                 <TableContainer className="max-h-[600px]">
                     <Table stickyHeader>
                         <TableHead>
                             <TableRow>
+        
                                 <TableCell
-                                    className="font-bold text-lg bg-gray-100 w-[5%]"
+                                    className="font-bold text-lg bg-gray-100"
                                     align="center"
+                                    sx={{ width: "20%" }}
                                 >
-                                    No
+                                    User Details
                                 </TableCell>
                                 <TableCell
-                                    className="font-bold text-lg bg-gray-100 w-[15%]"
+                                    className="font-bold text-lg bg-gray-100"
                                     align="center"
+                                    sx={{ width: "35%" }}
                                 >
-                                    User
+                                    Query
                                 </TableCell>
                                 <TableCell
-                                    className="font-bold text-lg bg-gray-100 w-[45%]"
+                                    className="font-bold text-lg bg-gray-100"
                                     align="center"
+                                    sx={{ width: "30%" }}
                                 >
-                                    Review
+                                    Solution
+                                </TableCell>
+                                <TableCell
+                                    className="font-bold text-lg bg-gray-100"
+                                    align="center"
+                                    sx={{ width: "10%" }}
+                                >
+                                    Action
                                 </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {review.map((user, index) => (
+                            {queries.map((query) => (
                                 <TableRow
-                                    key={user.ReviewID}
+                                    key={query.QueryID}
                                     className="hover:bg-gray-50 transition-colors"
+                                    sx={{
+                                        bgcolor: !query.Solution ? "warning.lightest" : "inherit"
+                                    }}
                                 >
-                                    <TableCell
-                                        align="center"
-                                        className="py-4"
-                                    >
-                                        {index + 1}
-                                    </TableCell>
-                                    <TableCell
-                                        align="left"
-                                        className="py-4 font-medium"
-                                    >
-                                       <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Full Name : </b>{user.Name}
+                                    
+                                    <TableCell align="left" className="py-4">
+                                        <Grid container spacing={1}>
+                                            <Grid item xs={12}>
+                                                <Typography variant="body2">
+                                                    <b>Name:</b> {query.Name}
                                                 </Typography>
                                             </Grid>
-                                            <Grid size={12}>
-                                                <Typography variant="body1">
-                                                    <b>Email : </b>{user.Email}
+                                            <Grid item xs={12}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    <b>Email:</b> {query.Email}
                                                 </Typography>
                                             </Grid>
                                         </Grid>
                                     </TableCell>
-                                    <TableCell
-                                        align="center"
-                                        className="py-4 text-gray-600"
-                                    >
-                                        {user.Review}
+                                    <TableCell align="left" className="py-4">
+                                        <Typography variant="body2">
+                                            {query.Query}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell align="left" className="py-4">
+                                        {query.Solution ? (
+                                            <Box sx={{ bgcolor: "success.light", p: 1, borderRadius: 1 }}>
+                                                <Typography variant="body2" color="success.dark">
+                                                    {query.Solution}
+                                                </Typography>
+                                            </Box>
+                                        ) : (
+                                            <Chip 
+                                                label="Pending" 
+                                                color="warning" 
+                                                size="small"
+                                                variant="outlined"
+                                            />
+                                        )}
+                                    </TableCell>
+                                    <TableCell align="center" className="py-4">
+                                        <Button
+                                            variant="contained"
+                                            size="small"
+                                            startIcon={query.Solution ? <EditIcon /> : <VisibilityIcon />}
+                                            onClick={() => handleOpenDialog(query)}
+                                            color={query.Solution ? "primary" : "warning"}
+                                        >
+                                            {query.Solution ? "Edit" : "Answer"}
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -114,6 +220,93 @@ export default function QueryTable() {
                     </Table>
                 </TableContainer>
             </Paper>
+
+            {/* Solution Dialog */}
+            <Dialog 
+                open={Boolean(selectedQuery)} 
+                onClose={handleCloseDialog}
+                maxWidth="md"
+                fullWidth
+            >
+                {selectedQuery && (
+                    <>
+                        <DialogTitle>
+                            <Typography variant="h6" fontWeight="bold">
+                                {selectedQuery.Solution ? "Edit Solution" : "Add Solution"}
+                            </Typography>
+                        </DialogTitle>
+                        <DialogContent>
+                            <Box sx={{ mt: 2 }}>
+                                {/* Query Details */}
+                                <Paper sx={{ p: 2, mb: 3, bgcolor: "grey.50" }}>
+                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                        Query Details:
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={6}>
+                                            <Typography variant="body2">
+                                                <b>Name:</b> {selectedQuery.Name}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={6}>
+                                            <Typography variant="body2">
+                                                <b>Email:</b> {selectedQuery.Email}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <Typography variant="body2">
+                                                <b>Query:</b> {selectedQuery.Query}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </Paper>
+
+                                {/* Solution Input */}
+                                <TextField
+                                    fullWidth
+                                    label="Your Solution"
+                                    multiline
+                                    rows={6}
+                                    value={solution}
+                                    onChange={(e) => setSolution(e.target.value)}
+                                    placeholder="Type your solution here..."
+                                    variant="outlined"
+                                    required
+                                />
+                            </Box>
+                        </DialogContent>
+                        <DialogActions sx={{ p: 2 }}>
+                            <Button onClick={handleCloseDialog} color="inherit">
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleSubmitSolution}
+                                variant="contained"
+                                disabled={loading || !solution.trim()}
+                                color="primary"
+                            >
+                                {loading ? "Saving..." : "Save Solution"}
+                            </Button>
+                        </DialogActions>
+                    </>
+                )}
+            </Dialog>
+
+            {/* Snackbar for notifications */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            >
+                <Alert 
+                    onClose={handleCloseSnackbar} 
+                    severity={snackbar.severity}
+                    variant="filled"
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }
